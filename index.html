@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>💰 超級還款試算表</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.18.9/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        textarea { font-family: Consolas, monospace; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal-content { background: white; margin: 15% auto; padding: 20px; width: 320px; border-radius: 8px; }
+    </style>
+</head>
+<body class="bg-gray-100 p-4">
+    <div id="root"></div>
+    <script type="text/babel">
+        function App() {
+            const [state, setState] = React.useState({
+                salary: 0,
+                living_expense: 5000,
+                start_month: 1,
+                repay_list: [],
+                course_list: [],
+                result: '',
+                modal: null
+            });
+
+            const showModal = (type) => {
+                setState({ ...state, modal: type });
+            };
+
+            const closeModal = () => {
+                setState({ ...state, modal: null });
+            };
+
+            const addPerson = async () => {
+                const name = document.getElementById('person-name').value;
+                const debt = document.getElementById('person-debt').value;
+                const response = await fetch('/api/add_person', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, debt })
+                });
+                const data = await response.json();
+                if (data.status === 'error') {
+                    alert(data.message);
+                } else {
+                    setState({ ...state, repay_list: data.repay_list, modal: null });
+                }
+            };
+
+            const addCourse = async () => {
+                const fee = document.getElementById('course-fee').value;
+                const months = document.getElementById('course-months').value;
+                const response = await fetch('/api/add_course', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fee, months })
+                });
+                const data = await response.json();
+                if (data.status === 'error') {
+                    alert(data.message);
+                } else {
+                    setState({ ...state, course_list: data.course_list, modal: null });
+                }
+            };
+
+            const setSalary = async () => {
+                const salary = document.getElementById('salary-input').value;
+                const response = await fetch('/api/set_salary', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ salary })
+                });
+                const data = await response.json();
+                if (data.status === 'error') {
+                    alert(data.message);
+                } else {
+                    setState({ ...state, salary: data.salary, modal: null });
+                }
+            };
+
+            const setLivingExpense = async () => {
+                const expense = document.getElementById('expense-input').value;
+                const response = await fetch('/api/set_living_expense', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ expense })
+                });
+                const data = await response.json();
+                if (data.status === 'error') {
+                    alert(data.message);
+                } else {
+                    setState({ ...state, living_expense: data.living_expense, modal: null });
+                }
+            };
+
+            const setStartMonth = async () => {
+                const start_month = document.getElementById('start-month-input').value;
+                const response = await fetch('/api/set_start_month', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ start_month })
+                });
+                const data = await response.json();
+                if (data.status === 'error') {
+                    alert(data.message);
+                } else {
+                    setState({ ...state, start_month: data.start_month, modal: null });
+                }
+            };
+
+            const calculate = async () => {
+                const response = await fetch('/api/calculate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const data = await response.json();
+                if (data.status === 'error') {
+                    alert(data.message);
+                } else {
+                    setState({ ...state, result: data.result });
+                }
+            };
+
+            const exportCsv = () => {
+                window.location.href = '/api/export_csv';
+            };
+
+            const copyResult = () => {
+                if (!state.result) {
+                    alert('無試算結果可複製，請先執行試算');
+                    return;
+                }
+                navigator.clipboard.writeText(state.result).then(() => {
+                    alert('已複製結果到剪貼簿');
+                });
+            };
+
+            const clearAll = async () => {
+                const response = await fetch('/api/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                const data = await response.json();
+                setState({
+                    salary: 0,
+                    living_expense: 5000,
+                    start_month: 1,
+                    repay_list: [],
+                    course_list: [],
+                    result: '',
+                    modal: null
+                });
+                alert(data.message);
+            };
+
+            const exitApp = () => {
+                if (window.confirm('確定要離開應用程式？')) {
+                    window.close();
+                }
+            };
+
+            return (
+                <div className="max-w-4xl mx-auto bg-white p-4 rounded-lg shadow-md">
+                    <h1 className="text-2xl font-bold text-center mb-4">💰 超級還款試算表</h1>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                        <button className="px-4 py-2 bg-[#FFD700] rounded-lg font-bold text-sm" onClick={exportCsv} disabled={!state.result}>💾 匯出 CSV</button>
+                        <button className="px-4 py-2 bg-[#87CEFA] rounded-lg font-bold text-sm" onClick={copyResult} disabled={!state.result}>📋 複製結果</button>
+                        <button className="px-4 py-2 bg-[#FFB6C1] rounded-lg font-bold text-sm" onClick={() => showModal('addPerson')}>➕ 新增還款人</button>
+                        <button className="px-4 py-2 bg-[#ADD8E6] rounded-lg font-bold text-sm" onClick={() => showModal('addCourse')}>➕ 新增課程</button>
+                        <button className="px-4 py-2 bg-[#87CEFA] rounded-lg font-bold text-sm" onClick={() => showModal('setSalary')}>💼 設定薪水</button>
+                        <button className="px-4 py-2 bg-[#FFD700] rounded-lg font-bold text-sm" onClick={() => showModal('setLivingExpense')}>🍙 設定生活費</button>
+                        <button className="px-4 py-2 bg-[#FFDEAD] rounded-lg font-bold text-sm" onClick={() => showModal('setStartMonth')}>📆 設定起始月</button>
+                        <button className="px-4 py-2 bg-[#D8BFD8] rounded-lg font-bold text-sm" onClick={clearAll}>🧹 清空重來</button>
+                        <button className="px-4 py-2 bg-[#CD5C5C] text-white rounded-lg font-bold text-sm" onClick={exitApp}>❌ 離開</button>
+                    </div>
+                    <div className="mb-4">
+                        <p className="text-sm">每月薪水: {state.salary.toFixed(2)} 元</p>
+                        <p className="text-sm">每月生活費: {state.living_expense.toFixed(2)} 元</p>
+                        <p className="text-sm">還款起始月: 第 {state.start_month} 個月</p>
+                    </div>
+                    <div className="mb-4">
+                        <h2 className="font-bold text-sm">還款人清單：</h2>
+                        <textarea className="w-full h-24 p-2 border rounded text-sm" readOnly value={state.repay_list.map(p => `${p.name} 欠 ${p.debt.toFixed(2)} 元`).join('\n')}></textarea>
+                    </div>
+                    <div className="mb-4">
+                        <h2 className="font-bold text-sm">課程清單：</h2>
+                        <textarea className="w-full h-24 p-2 border rounded text-sm" readOnly value={state.course_list.length === 0 ? '尚無課程' : state.course_list.map((c, i) => `課程${i+1}: 總費用 ${c.fee.toFixed(2)} 元，期數 ${c.months} 月，每月費用 ${(c.fee/c.months).toFixed(2)} 元`).join('\n')}></textarea>
+                    </div>
+                    <button className="w-full py-3 bg-[#90EE90] rounded-lg font-bold text-sm mb-4" onClick={calculate}>📊 開始試算</button>
+                    <div>
+                        <h2 className="font-bold text-sm">試算結果：</h2>
+                        <textarea className="w-full h-96 p-2 border rounded font-mono text-sm" readOnly value={state.result}></textarea>
+                    </div>
+
+                    {state.modal === 'addPerson' && (
+                        <div className="modal" style={{ display: 'block' }}>
+                            <div className="modal-content">
+                                <h2 className="text-lg font-bold">➕ 新增還款人</h2>
+                                <label className="block text-sm">請輸入還款人姓名：</label>
+                                <input id="person-name" type="text" className="w-full p-2 mb-2 border rounded text-sm" autoFocus />
+                                <label className="block text-sm">欠款金額 (元)：</label>
+                                <input id="person-debt" type="number" step="0.01" className="w-full p-2 mb-2 border rounded text-sm" />
+                                <div className="flex gap-2">
+                                    <button className="px-4 py-2 bg-[#FFB6C1] rounded-lg font-bold text-sm" onClick={addPerson}>加入</button>
+                                    <button className="px-4 py-2 bg-gray-300 rounded-lg font-bold text-sm" onClick={closeModal}>取消</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {state.modal === 'addCourse' && (
+                        <div className="modal" style={{ display: 'block' }}>
+                            <div className="modal-content">
+                                <h2 className="text-lg font-bold">➕ 新增課程</h2>
+                                <label className="block text-sm">課程總費用 (元)：</label>
+                                <input id="course-fee" type="number" step="0.01" className="w-full p-2 mb-2 border rounded text-sm" autoFocus />
+                                <label className="block text-sm">課程期數 (月)：</label>
+                                <input id="course-months" type="number" step="1" className="w-full p-2 mb-2 border rounded text-sm" />
+                                <div className="flex gap-2">
+                                    <button className="px-4 py-2 bg-[#ADD8E6] rounded-lg font-bold text-sm" onClick={addCourse}>新增課程</button>
+                                    <button className="px-4 py-2 bg-gray-300 rounded-lg font-bold text-sm" onClick={closeModal}>取消</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {state.modal === 'setSalary' && (
+                        <div className="modal" style={{ display: 'block' }}>
+                            <div className="modal-content">
+                                <h2 className="text-lg font-bold">💼 設定薪水</h2>
+                                <label className="block text-sm">請輸入每月薪水 (元)：</label>
+                                <input id="salary-input" type="number" step="0.01" className="w-full p-2 mb-2 border rounded text-sm" defaultValue={state.salary} autoFocus />
+                                <div className="flex gap-2">
+                                    <button className="px-4 py-2 bg-[#87CEFA] rounded-lg font-bold text-sm" onClick={setSalary}>設定完成</button>
+                                    <button className="px-4 py-2 bg-gray-300 rounded-lg font-bold text-sm" onClick={closeModal}>取消</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {state.modal === 'setLivingExpense' && (
+                        <div className="modal" style={{ display: 'block' }}>
+                            <div className="modal-content">
+                                <h2 className="text-lg font-bold">🍙 設定生活費</h2>
+                                <label className="block text-sm">請輸入每月生活費 (元)：</label>
+                                <input id="expense-input" type="number" step="0.01" className="w-full p-2 mb-2 border rounded text-sm" defaultValue={state.living_expense} autoFocus />
+                                <div className="flex gap-2">
+                                    <button className="px-4 py-2 bg-[#FFD700] rounded-lg font-bold text-sm" onClick={setLivingExpense}>設定完成</button>
+                                    <button className="px-4 py-2 bg-gray-300 rounded-lg font-bold text-sm" onClick={closeModal}>取消</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {state.modal === 'setStartMonth' && (
+                        <div className="modal" style={{ display: 'block' }}>
+                            <div className="modal-content">
+                                <h2 className="text-lg font-bold">📆 設定起始月</h2>
+                                <label className="block text-sm">請輸入從第幾個月開始還款（1起算）：</label>
+                                <input id="start-month-input" type="number" step="1" className="w-full p-2 mb-2 border rounded text-sm" defaultValue={state.start_month} autoFocus />
+                                <div className="flex gap-2">
+                                    <button className="px-4 py-2 bg-[#FFDEAD] rounded-lg font-bold text-sm" onClick={setStartMonth}>設定完成</button>
+                                    <button className="px-4 py-2 bg-gray-300 rounded-lg font-bold text-sm" onClick={closeModal}>取消</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>
