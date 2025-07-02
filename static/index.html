@@ -642,38 +642,63 @@
     ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
 </div>
-<!-- ✅ 簡潔實用 Cookie 同意橫幅 -->
+<!-- ✅ 正規 Cookie 同意橫幅 -->
 <div id="cookie-banner" style="
   position: fixed;
   bottom: 0;
   left: 0;
   width: 100%;
-  background: #f9f9f9;
-  border-top: 1px solid #ddd;
-  padding: 12px 16px;
-  text-align: center;
-  font-family: Arial, sans-serif;
+  background: #f8f8f8;
+  padding: 16px;
+  box-shadow: 0 -2px 6px rgba(0,0,0,0.15);
+  font-family: sans-serif;
   font-size: 14px;
   color: #333;
-  z-index: 9999;">
-  <span>本網站使用 Cookie 以改善使用體驗。點選 OK 即表示您同意。</span>
-  <button onclick="acceptCookies()" style="
-    margin-left: 12px;
-    padding: 6px 14px;
-    background: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;">OK</button>
+  z-index: 9999;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+">
+  <span style="flex: 1; min-width: 200px; text-align: center;">
+    我們使用 Cookie 改善網站功能與分析流量。請選擇是否接受。
+  </span>
+  <div>
+    <button onclick="acceptCookies()" style="background: #007bff; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer;">
+      接受全部
+    </button>
+    <button onclick="declineCookies()" style="background: #ccc; color: #000; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; margin-left: 8px;">
+      僅使用必要
+    </button>
+  </div>
 </div>
 
 <script>
   function acceptCookies() {
     localStorage.setItem('cookieConsent', 'accepted');
+    if (typeof gtag === 'function') {
+      gtag('consent', 'update', {
+        ad_storage: 'granted',
+        analytics_storage: 'granted'
+      });
+    }
     document.getElementById('cookie-banner').style.display = 'none';
   }
 
-  if (localStorage.getItem('cookieConsent') === 'accepted') {
+  function declineCookies() {
+    localStorage.setItem('cookieConsent', 'declined');
+    if (typeof gtag === 'function') {
+      gtag('consent', 'update', {
+        ad_storage: 'denied',
+        analytics_storage: 'denied'
+      });
+    }
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+
+  // 判斷是否已做出選擇
+  if (localStorage.getItem('cookieConsent')) {
     document.getElementById('cookie-banner').style.display = 'none';
   }
 </script>
