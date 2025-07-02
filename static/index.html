@@ -635,5 +635,43 @@
   </div>
   <div style="clear:both"></div>
 </div>
+<!-- 📢 Cookie 通知橫幅 -->
+<div id="cookie-banner" style="position:fixed;bottom:0;left:0;right:0;background:#f8f8f8;padding:16px;box-shadow:0 -2px 8px rgba(0,0,0,0.1);z-index:9999;display:flex;flex-direction:column;align-items:center;">
+  <p style="margin:0 0 8px 0;font-size:14px;text-align:center;">
+    我們使用 Cookie 來改善網站體驗與顯示個人化內容。請選擇是否接受。
+  </p>
+  <div>
+    <button onclick="acceptCookies()" style="margin-right:10px;padding:8px 16px;">接受全部</button>
+    <button onclick="declineCookies()" style="padding:8px 16px;">僅接受必要</button>
+  </div>
+</div>
+
+<script>
+  function acceptCookies() {
+    // ✅ 模擬使用者接受 Google Analytics / Ads cookie
+    localStorage.setItem('cookieConsent', 'accepted');
+    // 加入這行可啟用 Consent Mode v2
+    gtag('consent', 'update', {
+      ad_storage: 'granted',
+      analytics_storage: 'granted'
+    });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+
+  function declineCookies() {
+    // 🛑 僅保留必要 cookie
+    localStorage.setItem('cookieConsent', 'declined');
+    gtag('consent', 'update', {
+      ad_storage: 'denied',
+      analytics_storage: 'denied'
+    });
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+
+  // 若使用者已同意/拒絕過，就不顯示
+  if (localStorage.getItem('cookieConsent')) {
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script>
 </body>
 </html>
