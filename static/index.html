@@ -651,13 +651,13 @@
   </div>
   <div style="clear:both"></div>
 </div>
-<!-- ✅ Cookie 橫幅 -->
+<!-- ✅ Cookie 同意橫幅（簡潔正規版） -->
 <div id="cookie-banner" style="position:fixed;bottom:0;left:0;width:100%;background:#f8f8f8;color:#333;padding:16px;box-shadow:0 -2px 8px rgba(0,0,0,0.1);z-index:9999;text-align:center;">
-  <p style="margin:0 0 10px;font-size:14px;">
-    我們使用 Cookie 來改善網站體驗與顯示個人化內容。您可以選擇是否接受。
+  <p style="margin:0 0 8px;font-weight:bold;font-size:16px;">我們重視您的隱私</p>
+  <p style="margin:0 0 12px;font-size:14px;">
+    本網站使用 Cookie 改善使用者體驗與進行匿名統計分析。按下「OK」即表示您同意使用 Cookie。
   </p>
-  <button onclick="acceptCookies()" style="padding:8px 14px;margin:0 8px;">接受全部</button>
-  <button onclick="declineCookies()" style="padding:8px 14px;margin:0 8px;">僅使用必要</button>
+  <button onclick="acceptCookies()" style="padding:8px 16px;">OK</button>
 </div>
 
 <script>
@@ -672,18 +672,7 @@
     document.getElementById('cookie-banner').style.display = 'none';
   }
 
-  function declineCookies() {
-    localStorage.setItem('cookieConsent', 'declined');
-    if (typeof gtag === 'function') {
-      gtag('consent', 'update', {
-        ad_storage: 'denied',
-        analytics_storage: 'denied'
-      });
-    }
-    document.getElementById('cookie-banner').style.display = 'none';
-  }
-
-  // 已有記錄就不顯示
+  // 已選擇過就不再顯示橫幅
   if (localStorage.getItem('cookieConsent')) {
     document.getElementById('cookie-banner').style.display = 'none';
   }
