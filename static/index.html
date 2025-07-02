@@ -46,10 +46,10 @@
     function App() {
       const [state, setState] = React.useState({
         salary: 0,
-        living_expense: 0,
+        living_expense: 5000,
         start_month: 1,
-        repay_list: [],
-        course_list: [],
+        repay_list: [], // { name: 'Alice', debt: 10000 }
+        course_list: [], // { fee: 12000, months: 12 }
         result: '',
         modal: null
       });
@@ -60,17 +60,18 @@
       // 模擬後端 API 請求
       const apiPost = async (url, payload = {}) => {
         console.log(`模擬 POST 到 ${url}，資料:`, payload);
-        // 在實際應用中，這裡會是真正的 fetch 或 axios 請求
-        // 為了前端頁面功能完整性，這裡直接更新 state 並返回模擬結果
         let res = { status: 'success', message: '操作成功' };
 
+        // 這裡會直接在前端處理狀態，以便演示
         switch (url) {
           case '/api/add_person':
-            const newRepayList = [...state.repay_list, { name: payload.name, debt: parseFloat(payload.debt) }];
+            // 確保每次新增時都初始化一個 remaining_debt
+            const newRepayList = [...state.repay_list, { name: payload.name, debt: parseFloat(payload.debt), remaining_debt: parseFloat(payload.debt) }];
             res.repay_list = newRepayList;
             break;
           case '/api/add_course':
-            const newCourseList = [...state.course_list, { fee: parseFloat(payload.fee), months: parseInt(payload.months, 10) }];
+            // 確保每次新增時都初始化一個 remaining_fee
+            const newCourseList = [...state.course_list, { fee: parseFloat(payload.fee), months: parseInt(payload.months, 10), remaining_fee: parseFloat(payload.fee) }];
             res.course_list = newCourseList;
             break;
           case '/api/set_salary':
@@ -83,69 +84,80 @@
             res.start_month = parseInt(payload.start_month, 10);
             break;
           case '/api/calculate':
-            // 這裡是一個簡化的試算邏輯範例
-            let currentMonth = state.start_month;
-            let currentSalary = state.salary;
-            let currentLivingExpense = state.living_expense;
-            let totalDebt = state.repay_list.reduce((sum, p) => sum + p.debt, 0);
-            let totalCourseExpense = state.course_list.reduce((sum, c) => sum + c.fee, 0);
-
-            let log = [`--- 試算開始 (起始月: ${currentMonth}) ---`];
+            let log = [`--- 還款試算結果 (起始月: ${state.start_month}) ---`];
             let monthCount = 0;
-            let remainingDebt = totalDebt;
-            let remainingCourseFee = state.course_list.map(c => ({ ...c })); // 複製一份以免修改原 state
+            // 創建可變的債務和課程費用副本
+            let repayablePersons = state.repay_list.map(p => ({ ...p }));
+            let repayableCourses = state.course_list.map(c => ({ ...c }));
 
-            while (remainingDebt > 0 || remainingCourseFee.some(c => c.fee > 0)) {
+            let totalRemainingDebt = repayablePersons.reduce((sum, p) => sum + p.remaining_debt, 0);
+            let totalRemainingCourseFee = repayableCourses.reduce((sum, c) => sum + c.remaining_fee, 0);
+
+            // 當所有債務和課程費用都還清時停止
+            while (totalRemainingDebt > 0 || totalRemainingCourseFee > 0) {
                 monthCount++;
-                let disposableIncome = currentSalary - currentLivingExpense;
-                log.push(`\n第 ${monthCount} 個月 (月入: ${currentSalary.toFixed(2)}, 生活費: ${currentLivingExpense.toFixed(2)})`);
+                const displayMonth = (state.start_month + monthCount - 2) % 12 + 1; // 計算顯示月份 (1-12)
+                const displayYear = Math.floor((state.start_month + monthCount - 2) / 12) + 1; // 簡化年份計算，從第1年開始
 
-                // 處理課程費用
-                let monthlyCoursePayment = 0;
-                remainingCourseFee.forEach(course => {
-                    if (course.fee > 0 && course.months > 0) {
-                        const paymentThisMonth = course.fee / course.months;
-                        monthlyCoursePayment += paymentThisMonth;
-                        course.fee -= paymentThisMonth; // 扣除本月支付
+                let disposableIncome = state.salary - state.living_expense;
+                log.push(`\n${displayYear} 年 ${displayMonth} 月 (月收入: ${state.salary.toFixed(2)}, 生活費: ${state.living_expense.toFixed(2)})`);
+                log.push(`- 本月可支配金額: ${disposableIncome.toFixed(2)} 元`);
+
+                // 優先處理課程費用 (每月固定分期)
+                let currentMonthCoursePayment = 0;
+                repayableCourses.forEach(course => {
+                    if (course.remaining_fee > 0 && course.months > 0) {
+                        const monthlyPayment = course.fee / course.months; // 原始總費用 / 月數
+                        const paymentToApply = Math.min(monthlyPayment, course.remaining_fee); // 不超過剩餘費用
+                        currentMonthCoursePayment += paymentToApply;
+                        course.remaining_fee -= paymentToApply;
                     }
                 });
-                log.push(`- 課程月繳: ${monthlyCoursePayment.toFixed(2)} 元`);
-                disposableIncome -= monthlyCoursePayment;
 
-                if (disposableIncome < 0) {
-                    log.push(`- 可用餘額不足，本月赤字：${disposableIncome.toFixed(2)} 元。請調整薪水或生活費。`);
-                    // 這裡可以選擇停止試算或讓債務增加
-                    // 為簡化，我們假設可支配收入至少為0，不足部分由其他方式彌補，或試算直接繼續，債務不會因此增加。
-                    disposableIncome = 0; // 避免負值導致還款計算錯誤
+                if (currentMonthCoursePayment > 0) {
+                    log.push(`- 課程分期繳納: ${currentMonthCoursePayment.toFixed(2)} 元`);
+                    disposableIncome -= currentMonthCoursePayment;
                 }
 
-                // 還款
-                let repaymentThisMonth = Math.min(disposableIncome, remainingDebt);
-                remainingDebt -= repaymentThisMonth;
-                disposableIncome -= repaymentThisMonth;
+                if (disposableIncome <= 0) {
+                    log.push(`- 可用於還款的金額不足，本月無額外還款或赤字：${disposableIncome.toFixed(2)} 元。`);
+                    // 即使赤字，我們也繼續循環，直到所有債務歸零 (表示需要外部資金或調整設定)
+                } else {
+                    log.push(`- 本月可用於償還個人債務金額: ${disposableIncome.toFixed(2)} 元`);
 
-                log.push(`- 本月還款: ${repaymentThisMonth.toFixed(2)} 元`);
-                log.push(`- 剩餘總債務: ${remainingDebt.toFixed(2)} 元`);
-                log.push(`- 剩餘課程費用: ${remainingCourseFee.reduce((sum, c) => sum + Math.max(0, c.fee), 0).toFixed(2)} 元`);
-                log.push(`- 本月結餘: ${disposableIncome.toFixed(2)} 元`);
+                    // 按照列表順序依次還款，直到可支配金額用完或所有債務還清
+                    for (let i = 0; i < repayablePersons.length && disposableIncome > 0; i++) {
+                        let person = repayablePersons[i];
+                        if (person.remaining_debt > 0) {
+                            let amountToRepay = Math.min(disposableIncome, person.remaining_debt);
+                            person.remaining_debt -= amountToRepay;
+                            disposableIncome -= amountToRepay;
+                            log.push(`  - 還給 ${person.name}: ${amountToRepay.toFixed(2)} 元`);
+                        }
+                    }
+                }
+
+                // 更新總剩餘債務和課程費用
+                totalRemainingDebt = repayablePersons.reduce((sum, p) => sum + Math.max(0, p.remaining_debt), 0);
+                totalRemainingCourseFee = repayableCourses.reduce((sum, c) => sum + Math.max(0, c.remaining_fee), 0);
+
+                log.push(`- 當前總剩餘債務: ${totalRemainingDebt.toFixed(2)} 元`);
+                log.push(`- 當前總剩餘課程費用: ${totalRemainingCourseFee.toFixed(2)} 元`);
 
                 if (monthCount > 1200) { // 設定一個最大循環次數，避免無限循環
-                    log.push("\n警告：試算時間過長，可能存在無法還清的債務或數據設定問題。");
+                    log.push("\n--- 警告：試算時間過長 (超過 100 年)。可能設定有誤，或收入不足以還清所有債務和課程費用。---");
                     break;
                 }
             }
             log.push(`\n--- 試算結束 ---`);
-            log.push(`總計 ${monthCount} 個月還清所有債務和課程費用。`);
+            log.push(`恭喜！總計花費 ${monthCount} 個月 (從 ${state.start_month} 月算起) 還清所有債務和課程費用。`);
             res.result = log.join('\n');
             break;
           case '/api/reset':
             res.message = '所有資料已清空。';
-            // 不返回數據，App 組件會自行重設 state
             break;
           case '/api/export_csv':
-             // 在前端，export_csv通常會觸發一個下載，而不是返回JSON
-             // 這裡不做實際處理，讓window.location.href負責
-             return {}; // 返回空物件或適當的響應
+             return {};
           default:
             res.status = 'error';
             res.message = '未知 API 路徑';
@@ -169,7 +181,8 @@
             debtInput.focus();
             return;
         }
-        const res = await apiPost('/api/add_person', { name, debt });
+        // 將 remaining_debt 一併加入
+        const res = await apiPost('/api/add_person', { name, debt, remaining_debt: debt });
         if (res.status === 'error') alert(res.message);
         else setState({ ...state, repay_list: res.repay_list, modal: null });
       };
@@ -190,7 +203,8 @@
             monthsInput.focus();
             return;
         }
-        const res = await apiPost('/api/add_course', { fee, months });
+        // 將 remaining_fee 一併加入
+        const res = await apiPost('/api/add_course', { fee, months, remaining_fee: fee });
         if (res.status === 'error') alert(res.message);
         else setState({ ...state, course_list: res.course_list, modal: null });
       };
@@ -294,10 +308,8 @@
 
       const exitApp = () => {
         if (confirm('確定離開？')) {
-            // 在瀏覽器中，由腳本開啟的視窗才能被 window.close() 關閉。
-            // 對於使用者直接開啟的頁面，這行可能不會有作用。
             window.close();
-            alert('感謝使用！'); // 可以給個提示
+            alert('感謝使用！');
         }
       };
 
@@ -319,8 +331,8 @@
 
           <div className="text-sm mb-2">薪水: {state.salary.toFixed(2)} 元 | 生活費: {state.living_expense.toFixed(2)} 元 | 起始月: {state.start_month}</div>
 
-          <textarea readOnly className="w-full h-24 p-2 border rounded mb-2 text-sm" value={state.repay_list.map(p => `${p.name} 欠 ${p.debt.toFixed(2)} 元`).join('\n') || '尚無還款人' }></textarea>
-          <textarea readOnly className="w-full h-24 p-2 border rounded mb-2 text-sm" value={state.course_list.length ? state.course_list.map((c, i) => `課程${i+1}: 總 ${c.fee.toFixed(2)} 元，分 ${c.months} 期`).join('\n') : '尚無課程'}></textarea>
+          <textarea readOnly className="w-full h-24 p-2 border rounded mb-2 text-sm" value={state.repay_list.map(p => `${p.name} 欠 ${p.debt.toFixed(2)} 元 (剩餘 ${p.remaining_debt ? p.remaining_debt.toFixed(2) : p.debt.toFixed(2)} 元)`).join('\n') || '尚無還款人' }></textarea>
+          <textarea readOnly className="w-full h-24 p-2 border rounded mb-2 text-sm" value={state.course_list.length ? state.course_list.map((c, i) => `課程${i+1}: 總 ${c.fee.toFixed(2)} 元，分 ${c.months} 期 (剩餘 ${c.remaining_fee ? c.remaining_fee.toFixed(2) : c.fee.toFixed(2)} 元)`).join('\n') : '尚無課程'}></textarea>
 
           <button className="w-full py-3 bg-green-300 rounded font-bold text-sm mb-4" onClick={calculate}>📊 開始試算</button>
           <textarea readOnly className="w-full flex-grow p-2 border rounded text-sm" value={state.result || '點擊 "開始試算" 後顯示結果' }></textarea>
