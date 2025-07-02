@@ -1,506 +1,577 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>💰 超級還款試算表</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.18.9/babel.min.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    html, body {
-      height: 100%;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: Arial, sans-serif;
-    }
-    .modal {
-      display: flex;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.5);
-      z-index: 1000;
-      justify-content: center;
-      align-items: center;
-    }
-    .modal-content {
-      background: white;
-      padding: 20px;
-      width: 90%;
-      max-width: 350px;
-      border-radius: 8px;
-    }
-    textarea {
-      font-family: Consolas, monospace;
-    }
-  </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>💰 超級還款試算表 - 完整版</title>
+  <!-- React CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.20.12/babel.min.js"></script>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body, #root {
+      height: 100%;
+      margin: 0; padding: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f3f4f6; /* Tailwind gray-100 */
+    }
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 380px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    textarea {
+      font-family: 'Courier New', Courier, monospace;
+      white-space: pre-wrap;
+    }
+  </style>
 </head>
-<body class="bg-gray-100 p-2 min-h-screen flex flex-col">
+<body>
+  <div id="root" class="h-full flex flex-col"></div>
 
-  <div id="root" class="flex-grow flex flex-col"></div>
+  <script type="text/babel">
 
-  <script type="text/babel">
-    function App() {
-      // 從 localStorage 載入資料，如果沒有則使用預設值
-      const getInitialState = () => {
-        try {
-          const storedSalary = localStorage.getItem('salary');
-          const storedLivingExpense = localStorage.getItem('living_expense');
-          const storedStartMonth = localStorage.getItem('start_month');
-          const storedRepayList = localStorage.getItem('repay_list');
-          const storedCourseList = localStorage.getItem('course_list');
+    // 主 App 組件
+    function App() {
+      // 讀取 LocalStorage 或給初始值
+      const getInitialState = () => {
+        try {
+          return {
+            salary: parseFloat(localStorage.getItem('salary')) || 0,
+            livingExpense: parseFloat(localStorage.getItem('livingExpense')) || 0,
+            startMonth: parseInt(localStorage.getItem('startMonth')) || 1,
+            repayList: JSON.parse(localStorage.getItem('repayList')) || [],
+            courseList: JSON.parse(localStorage.getItem('courseList')) || [],
+            calculationResult: '',
+            modalType: null,
+          };
+        } catch (e) {
+          return {
+            salary: 0,
+            livingExpense: 0,
+            startMonth: 1,
+            repayList: [],
+            courseList: [],
+            calculationResult: '',
+            modalType: null,
+          };
+        }
+      };
 
-          return {
-            salary: storedSalary ? parseFloat(storedSalary) : 0,
-            living_expense: storedLivingExpense ? parseFloat(storedLivingExpense) : 0,
-            start_month: storedStartMonth ? parseInt(storedStartMonth, 10) : 1,
-            repay_list: storedRepayList ? JSON.parse(storedRepayList) : [],
-            course_list: storedCourseList ? JSON.parse(storedCourseList) : [],
-            result: '',
-            modal: null
-          };
-        } catch (error) {
-          console.error("載入 LocalStorage 失敗:", error);
-          // 如果載入失敗，返回預設值
-          return {
-            salary: 0,
-            living_expense: 0, // Changed default to 0
-            start_month: 1,
-            repay_list: [],
-            course_list: [],
-            result: '',
-            modal: null
-          };
-        }
-      };
+      const [state, setState] = React.useState(getInitialState);
 
-      const [state, setState] = React.useState(getInitialState);
+      // 每次重要資料改變存到 LocalStorage
+      React.useEffect(() => {
+        localStorage.setItem('salary', state.salary);
+        localStorage.setItem('livingExpense', state.livingExpense);
+        localStorage.setItem('startMonth', state.startMonth);
+        localStorage.setItem('repayList', JSON.stringify(state.repayList));
+        localStorage.setItem('courseList', JSON.stringify(state.courseList));
+      }, [state.salary, state.livingExpense, state.startMonth, state.repayList, state.courseList]);
 
-      // 使用 useEffect 來監聽狀態變化並儲存到 LocalStorage
-      React.useEffect(() => {
-        localStorage.setItem('salary', state.salary);
-        localStorage.setItem('living_expense', state.living_expense);
-        localStorage.setItem('start_month', state.start_month);
-        localStorage.setItem('repay_list', JSON.stringify(state.repay_list));
-        localStorage.setItem('course_list', JSON.stringify(state.course_list));
-      }, [state.salary, state.living_expense, state.start_month, state.repay_list, state.course_list]);
+      // 開啟模態框
+      const openModal = (type) => {
+        setState(prev => ({ ...prev, modalType: type }));
+      };
 
+      // 關閉模態框
+      const closeModal = () => {
+        setState(prev => ({ ...prev, modalType: null }));
+      };
 
-      const showModal = (type) => setState({ ...state, modal: type });
-      const closeModal = () => setState({ ...state, modal: null });
+      // 新增還款人
+      const addPerson = (name, debt) => {
+        if (!name.trim()) {
+          alert("姓名不能為空");
+          return false;
+        }
+        if (isNaN(debt) || debt <= 0) {
+          alert("欠款金額必須大於0");
+          return false;
+        }
+        const newPerson = {
+          name: name.trim(),
+          debt: parseFloat(debt),
+          remainingDebt: parseFloat(debt),
+        };
+        setState(prev => ({
+          ...prev,
+          repayList: [...prev.repayList, newPerson],
+          modalType: null,
+        }));
+        return true;
+      };
 
-      // 模擬後端 API 請求 - 在這裡處理狀態更新和試算邏輯
-      const apiPost = async (url, payload = {}) => {
-        console.log(`模擬 POST 到 ${url}，資料:`, payload);
-        let res = { status: 'success', message: '操作成功' };
+      // 新增課程費用
+      const addCourse = (fee, months) => {
+        if (isNaN(fee) || fee <= 0) {
+          alert("課程總費用必須大於0");
+          return false;
+        }
+        if (!Number.isInteger(months) || months <= 0) {
+          alert("課程期數必須是大於0的整數");
+          return false;
+        }
+        const newCourse = {
+          fee: parseFloat(fee),
+          months: months,
+          remainingFee: parseFloat(fee),
+        };
+        setState(prev => ({
+          ...prev,
+          courseList: [...prev.courseList, newCourse],
+          modalType: null,
+        }));
+        return true;
+      };
 
-        switch (url) {
-          case '/api/add_person':
-            const updatedRepayList = [...state.repay_list, { name: payload.name, debt: parseFloat(payload.debt), remaining_debt: parseFloat(payload.debt) }];
-            res.repay_list = updatedRepayList;
-            break;
-          case '/api/add_course':
-            const updatedCourseList = [...state.course_list, { fee: parseFloat(payload.fee), months: parseInt(payload.months, 10), remaining_fee: parseFloat(payload.fee) }];
-            res.course_list = updatedCourseList;
-            break;
-          case '/api/set_salary':
-            res.salary = parseFloat(payload.salary);
-            break;
-          case '/api/set_living_expense':
-            res.living_expense = parseFloat(payload.expense);
-            break;
-          case '/api/set_start_month':
-            res.start_month = parseInt(payload.start_month, 10);
-            break;
-          case '/api/calculate':
-            let log = [`--- 超級還款試算表 (起始月: ${state.start_month}) ---`];
-            let monthCount = 0;
+      // 設定薪水
+      const setSalary = (salary) => {
+        if (isNaN(salary) || salary < 0) {
+          alert("薪水必須是非負數");
+          return false;
+        }
+        setState(prev => ({
+          ...prev,
+          salary: parseFloat(salary),
+          modalType: null,
+        }));
+        return true;
+      };
 
-            let currentRepayPersons = JSON.parse(JSON.stringify(state.repay_list));
-            let currentCourses = JSON.parse(JSON.stringify(state.course_list));
+      // 設定生活費
+      const setLivingExpense = (expense) => {
+        if (isNaN(expense) || expense < 0) {
+          alert("生活費必須是非負數");
+          return false;
+        }
+        setState(prev => ({
+          ...prev,
+          livingExpense: parseFloat(expense),
+          modalType: null,
+        }));
+        return true;
+      };
 
-            let getTotalRemaining = () => {
-                const debt = currentRepayPersons.reduce((sum, p) => sum + Math.max(0, p.remaining_debt), 0);
-                const course = currentCourses.reduce((sum, c) => sum + Math.max(0, c.remaining_fee), 0);
-                return debt + course;
-            };
+      // 設定起始月份
+      const setStartMonth = (month) => {
+        if (!Number.isInteger(month) || month < 1 || month > 12) {
+          alert("起始月份必須介於1到12");
+          return false;
+        }
+        setState(prev => ({
+          ...prev,
+          startMonth: month,
+          modalType: null,
+        }));
+        return true;
+      };
 
-            if (getTotalRemaining() === 0) {
-                log.push("\n目前沒有任何債務或課程費用需要償還。");
-                res.result = log.join('\n');
-                break;
-            }
+      // 計算還款試算
+      const calculateRepayment = () => {
+        if (state.salary <= 0) {
+          alert("請先設定薪水且大於0");
+          openModal('setSalary');
+          return;
+        }
+        if (state.livingExpense < 0) {
+          alert("生活費必須非負");
+          openModal('setLivingExpense');
+          return;
+        }
+        if (state.repayList.length === 0 && state.courseList.length === 0) {
+          alert("請至少新增一筆還款人或課程資料");
+          return;
+        }
 
-            const MAX_MONTHS = 1200; // 最多試算 100 年，避免無限循環
+        // 深拷貝還款人與課程，避免改變原始state
+        const repayListCopy = state.repayList.map(p => ({
+          ...p,
+          remainingDebt: p.remainingDebt,
+        }));
+        const courseListCopy = state.courseList.map(c => ({
+          ...c,
+          remainingFee: c.remainingFee,
+        }));
 
-            while (getTotalRemaining() > 0 && monthCount < MAX_MONTHS) {
-                monthCount++;
-                const actualMonthIndex = state.start_month + monthCount - 2;
-                const displayYear = Math.floor(actualMonthIndex / 12) + 1;
-                const displayMonth = (actualMonthIndex % 12) + 1;
+        const logs = [];
+        logs.push(`=== 超級還款試算表 ===`);
+        logs.push(`起始月份：${state.startMonth} 月`);
+        logs.push(`薪水：${state.salary.toFixed(2)} 元`);
+        logs.push(`生活費：${state.livingExpense.toFixed(2)} 元`);
+        logs.push('');
 
-                let disposableIncome = state.salary - state.living_expense;
-                log.push(`\n=== ${displayYear} 年 ${displayMonth} 月 ===`);
-                log.push(`- 月收入: ${state.salary.toFixed(2)} 元`);
-                log.push(`- 生活費: ${state.living_expense.toFixed(2)} 元`);
-                log.push(`- 本月可支配金額 (扣除生活費後): ${disposableIncome.toFixed(2)} 元`);
+        // 計算
+        let monthCount = 0;
+        const maxMonths = 1200; // 最多試算 100 年，避免無限迴圈
+        function totalRemaining() {
+          const repaySum = repayListCopy.reduce((a, c) => a + Math.max(0, c.remainingDebt), 0);
+          const courseSum = courseListCopy.reduce((a, c) => a + Math.max(0, c.remainingFee), 0);
+          return repaySum + courseSum;
+        }
 
-                let totalCoursePaymentThisMonth = 0;
-                currentCourses.forEach(course => {
-                    if (course.remaining_fee > 0 && course.months > 0) {
-                        const monthlyPaymentPerCourse = course.fee / course.months;
-                        const paymentToApply = Math.min(monthlyPaymentPerCourse, course.remaining_fee);
+        if (totalRemaining() === 0) {
+          logs.push("目前沒有任何債務或課程費用需償還。");
+          setState(prev => ({ ...prev, calculationResult: logs.join('\n') }));
+          return;
+        }
 
-                        totalCoursePaymentThisMonth += paymentToApply;
-                        course.remaining_fee -= paymentToApply;
-                    }
-                });
+        while (totalRemaining() > 0 && monthCount < maxMonths) {
+          monthCount++;
+          // 計算年月
+          const absoluteMonthIndex = state.startMonth + monthCount - 2; // -2 是因為月從1開始算，且第一個月是試算第一個月
+          const year = Math.floor(absoluteMonthIndex / 12) + 1;
+          const month = (absoluteMonthIndex % 12) + 1;
 
-                if (totalCoursePaymentThisMonth > 0) {
-                    log.push(`- 課程分期繳納總額: ${totalCoursePaymentThisMonth.toFixed(2)} 元`);
-                    disposableIncome -= totalCoursePaymentThisMonth;
-                }
+          logs.push(`--- 第 ${monthCount} 個月 (${year} 年 ${month} 月) ---`);
+          logs.push(`本月薪水：${state.salary.toFixed(2)} 元`);
+          logs.push(`本月生活費：${state.livingExpense.toFixed(2)} 元`);
 
-                if (disposableIncome <= 0) {
-                    log.push(`- 本月可用於償還個人債務金額不足 (僅剩 ${disposableIncome.toFixed(2)} 元)，本月無額外還款。`);
-                } else {
-                    log.push(`- 本月可靈活支配用於償還個人債務金額: ${disposableIncome.toFixed(2)} 元`);
+          // 可支配金額
+          let disposable = state.salary - state.livingExpense;
+          logs.push(`本月可支配金額(扣除生活費後)：${disposable.toFixed(2)} 元`);
 
-                    let currentTotalPersonsDebt = currentRepayPersons.reduce((sum, p) => sum + Math.max(0, p.remaining_debt), 0);
+          // 課程分期付款先扣
+          let coursePayTotal = 0;
+          courseListCopy.forEach(course => {
+            if (course.remainingFee > 0 && course.months > 0) {
+              // 每月應付
+              const monthlyPayment = course.fee / course.months;
+              const payThisMonth = Math.min(monthlyPayment, course.remainingFee);
+              coursePayTotal += payThisMonth;
+              course.remainingFee -= payThisMonth;
+              course.remainingFee = Math.max(course.remainingFee, 0);
+            }
+          });
+          if (coursePayTotal > 0) {
+            logs.push(`本月課程付款總額：${coursePayTotal.toFixed(2)} 元`);
+            disposable -= coursePayTotal;
+          }
 
-                    if (currentTotalPersonsDebt > 0 && disposableIncome > 0) {
-                        // 計算所有有債務的人，並按比例分配
-                        let totalAllocated = 0;
-                        currentRepayPersons.forEach(person => {
-                            if (person.remaining_debt > 0) {
-                                const debtRatio = person.remaining_debt / currentTotalPersonsDebt;
-                                let amountToRepay = disposableIncome * debtRatio;
-                                
-                                // 確保不超過剩餘債務，並四捨五入到小數點兩位
-                                amountToRepay = Math.min(amountToRepay, person.remaining_debt);
-                                amountToRepay = parseFloat(amountToRepay.toFixed(2)); 
+          if (disposable <= 0) {
+            logs.push("本月可用於還款的金額不足，無法還個人債務。");
+          } else {
+            logs.push(`本月可用於還個人債務的金額：${disposable.toFixed(2)} 元`);
 
-                                if (amountToRepay > 0) { // 確保分配的金額大於0
-                                    person.remaining_debt -= amountToRepay;
-                                    totalAllocated += amountToRepay;
-                                    log.push(`  - 還給 ${person.name}: ${amountToRepay.toFixed(2)} 元`);
-                                }
-                            }
-                        });
+            // 個人債務剩餘總額
+            const totalDebtRemaining = repayListCopy.reduce((a, c) => a + Math.max(0, c.remainingDebt), 0);
+            if (totalDebtRemaining === 0) {
+              logs.push("所有個人債務已還清。");
+            } else {
+              // 根據比例分配還款
+              let allocated = 0;
+              repayListCopy.forEach(p => {
+                if (p.remainingDebt > 0) {
+                  const ratio = p.remainingDebt / totalDebtRemaining;
+                  let payment = disposable * ratio;
+                  payment = Math.min(payment, p.remainingDebt);
+                  payment = parseFloat(payment.toFixed(2));
+                  p.remainingDebt -= payment;
+                  p.remainingDebt = Math.max(p.remainingDebt, 0);
+                  allocated += payment;
+                  logs.push(`- 還給 ${p.name}：${payment.toFixed(2)} 元`);
+                }
+              });
 
-                        // 處理因為toFixed()四捨五入造成的微小剩餘，盡量分完
-                        let finalRemainingDisposable = disposableIncome - totalAllocated;
-                        if (finalRemainingDisposable > 0.01) { // 如果還有微小剩餘且超過一定閾值
-                            // 再次嘗試分配給仍有債務的人，優先給那些剩餘債務大的
-                            currentRepayPersons.sort((a, b) => b.remaining_debt - a.remaining_debt); // 按剩餘債務降序
-                            for(let i = 0; i < currentRepayPersons.length && finalRemainingDisposable > 0.01; i++) {
-                                let person = currentRepayPersons[i];
-                                if (person.remaining_debt > 0) {
-                                    let amountToAdd = Math.min(finalRemainingDisposable, person.remaining_debt);
-                                    amountToAdd = parseFloat(amountToAdd.toFixed(2));
-                                    if (amountToAdd > 0) {
-                                        person.remaining_debt -= amountToAdd;
-                                        finalRemainingDisposable -= amountToAdd;
-                                        // 找到之前記錄的還款行並更新它，或者新增一行
-                                        let updatedLog = false;
-                                        for(let k = log.length - 1; k >= 0; k--) {
-                                            if (log[k].includes(`還給 ${person.name}`)) {
-                                                const originalAmountMatch = log[k].match(/還給\s.+:\s([\d.]+)\s元/);
-                                                if (originalAmountMatch) {
-                                                    const originalAmount = parseFloat(originalAmountMatch[1]);
-                                                    const newAmount = originalAmount + amountToAdd;
-                                                    log[k] = log[k].replace(`${originalAmount.toFixed(2)} 元`, `${newAmount.toFixed(2)} 元`);
-                                                    updatedLog = true;
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                        if (!updatedLog) { // 如果之前沒有還款記錄，則新增一行
-                                             log.push(`  - (補足) 還給 ${person.name}: ${amountToAdd.toFixed(2)} 元`);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    } else if (currentTotalPersonsDebt > 0 && disposableIncome <= 0) {
-                         log.push(`  - 沒有足夠的金額償還個人債務。`);
-                    } else if (currentTotalPersonsDebt === 0) {
-                         log.push(`  - 所有個人債務已清償。`);
-                    }
-                }
+              // 處理因四捨五入造成的殘差
+              let residual = disposable - allocated;
+              residual = parseFloat(residual.toFixed(2));
+              if (residual > 0) {
+                // 補給剩餘最大債務者
+                repayListCopy.sort((a, b) => b.remainingDebt - a.remainingDebt);
+                for (let i = 0; i < repayListCopy.length && residual > 0; i++) {
+                  let p = repayListCopy[i];
+                  if (p.remainingDebt > 0) {
+                    let addPayment = Math.min(residual, p.remainingDebt);
+                    addPayment = parseFloat(addPayment.toFixed(2));
+                    p.remainingDebt -= addPayment;
+                    p.remainingDebt = Math.max(p.remainingDebt, 0);
+                    residual -= addPayment;
+                    residual = parseFloat(residual.toFixed(2));
+                    // 補記錄
+                    logs.push(`- (補足) 還給 ${p.name}：${addPayment.toFixed(2)} 元`);
+                  }
+                }
+              }
+            }
+          }
 
+          // 本月結束後債務狀況
+          const totalDebtLeft = repayListCopy.reduce((a, c) => a + Math.max(0, c.remainingDebt), 0);
+          const totalCourseLeft = courseListCopy.reduce((a, c) => a + Math.max(0, c.remainingFee), 0);
+          logs.push(`本月結束後，剩餘個人債務：${totalDebtLeft.toFixed(2)} 元`);
+          logs.push(`本月結束後，剩餘課程費用：${totalCourseLeft.toFixed(2)} 元`);
+          logs.push('');
+          
+          if (monthCount >= maxMonths && totalRemaining() > 0) {
+            logs.push('⚠️ 警告：試算超過 100 年，可能收入不足還清全部債務。');
+            break;
+          }
+        }
 
-                log.push(`- 本月結束後，總剩餘債務: ${currentRepayPersons.reduce((sum, p) => sum + Math.max(0, p.remaining_debt), 0).toFixed(2)} 元`);
-                log.push(`- 本月結束後，總剩餘課程費用: ${currentCourses.reduce((sum, c) => sum + Math.max(0, c.remaining_fee), 0).toFixed(2)} 元`);
+        if (totalRemaining() <= 0) {
+          logs.push(`恭喜！所有債務及課程費用已於 ${monthCount} 個月內還清。`);
+        } else {
+          logs.push(`試算結束，${monthCount} 個月後仍有剩餘債務或費用。`);
+        }
 
-                if (monthCount >= MAX_MONTHS && getTotalRemaining() > 0) {
-                    log.push("\n--- 警告：試算時間過長 (超過 100 年)。可能收入不足以還清所有債務和課程費用，請調整您的財務設定。---");
-                    break;
-                }
-            }
+        // 顯示結果
+        setState(prev => ({ ...prev, calculationResult: logs.join('\n') }));
+      };
 
-            if (getTotalRemaining() <= 0) {
-                log.push(`\n--- 恭喜！ ---`);
-                log.push(`所有債務和課程費用已在總計 ${monthCount} 個月內清償完畢！`);
-            } else {
-                log.push(`\n--- 試算結束 ---`);
-                log.push(`經過 ${monthCount} 個月的試算，仍有債務或課程費用未清償。`);
-                log.push(`剩餘總債務: ${currentRepayPersons.reduce((sum, p) => sum + Math.max(0, p.remaining_debt), 0).toFixed(2)} 元`);
-                log.push(`剩餘總課程費用: ${currentCourses.reduce((sum, c) => sum + Math.max(0, c.remaining_fee), 0).toFixed(2)} 元`);
-            }
+      // 匯出 CSV 功能
+      const exportCSV = () => {
+        if (!state.calculationResult) {
+          alert("沒有可匯出的計算結果");
+          return;
+        }
+        // 將每行包成雙引號，避免逗號問題
+        const csvLines = state.calculationResult
+          .split('\n')
+          .map(line => `"${line.replace(/"/g, '""')}"`)
+          .join('\n');
+        const blob = new Blob([csvLines], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'repayment_plan.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+      };
 
-            res.result = log.join('\n');
-            break;
-          case '/api/reset':
-            // 清空 LocalStorage
-            localStorage.clear();
-            res.message = '所有資料已清空。';
-            break;
-          case '/api/export_csv':
-             return {};
-          default:
-            res.status = 'error';
-            res.message = '未知 API 路徑';
-        }
-        return res;
-      };
+      // 重置全部資料
+      const resetAll = () => {
+        if (!confirm("確定要清除所有資料？此動作無法復原。")) return;
+        localStorage.clear();
+        setState({
+          salary: 0,
+          livingExpense: 0,
+          startMonth: 1,
+          repayList: [],
+          courseList: [],
+          calculationResult: '',
+          modalType: null,
+        });
+      };
 
-      const addPerson = async () => {
-        const nameInput = document.getElementById('person-name');
-        const debtInput = document.getElementById('person-debt');
-        const name = nameInput.value.trim();
-        const debt = parseFloat(debtInput.value);
+      // Modal 內容根據 type 切換
+      const ModalContent = () => {
+        const [input1, setInput1] = React.useState('');
+        const [input2, setInput2] = React.useState('');
+        React.useEffect(() => {
+          if (state.modalType === 'setSalary') setInput1(state.salary.toString());
+          else if (state.modalType === 'setLivingExpense') setInput1(state.livingExpense.toString());
+          else if (state.modalType === 'setStartMonth') setInput1(state.startMonth.toString());
+          else setInput1('');
+          setInput2('');
+        }, [state.modalType]);
 
-        if (name === '') {
-            alert('姓名不能為空');
-            nameInput.focus();
-            return;
-        }
-        if (isNaN(debt) || debt <= 0) {
-            alert('欠款金額必須為有效數字且大於 0');
-            debtInput.focus();
-            return;
-        }
-        const res = await apiPost('/api/add_person', { name, debt });
-        if (res.status === 'error') alert(res.message);
-        else {
-          setState({ ...state, repay_list: res.repay_list, modal: null });
-          nameInput.value = '';
-          debtInput.value = '';
-        }
-      };
+        const onConfirm = () => {
+          if (state.modalType === 'addPerson') {
+            if (addPerson(input1, parseFloat(input2))) closeModal();
+          } else if (state.modalType === 'addCourse') {
+            if (addCourse(parseFloat(input1), parseInt(input2))) closeModal();
+          } else if (state.modalType === 'setSalary') {
+            if (setSalary(parseFloat(input1))) closeModal();
+          } else if (state.modalType === 'setLivingExpense') {
+            if (setLivingExpense(parseFloat(input1))) closeModal();
+          } else if (state.modalType === 'setStartMonth') {
+            if (setStartMonth(parseInt(input1))) closeModal();
+          }
+        };
 
-      const addCourse = async () => {
-        const feeInput = document.getElementById('course-fee');
-        const monthsInput = document.getElementById('course-months');
-        const fee = parseFloat(feeInput.value);
-        const months = parseInt(monthsInput.value, 10);
+        // Modal 標題與說明
+        let title = '';
+        let label1 = '';
+        let label2 = '';
+        let input1Type = 'text';
+        let input2Type = 'text';
+        let input2Placeholder = '';
+        let showInput2 = false;
 
-        if (isNaN(fee) || fee <= 0) {
-            alert('課程總費用必須為有效數字且大於 0');
-            feeInput.focus();
-            return;
-        }
-        if (isNaN(months) || months <= 0) {
-            alert('課程期數必須為有效數字且大於 0');
-            monthsInput.focus();
-            return;
-        }
-        const res = await apiPost('/api/add_course', { fee, months });
-        if (res.status === 'error') alert(res.message);
-        else {
-          setState({ ...state, course_list: res.course_list, modal: null });
-          feeInput.value = '';
-          monthsInput.value = '';
-        }
-      };
+        switch (state.modalType) {
+          case 'addPerson':
+            title = '新增還款人';
+            label1 = '姓名';
+            label2 = '欠款金額 (元)';
+            input1Type = 'text';
+            input2Type = 'number';
+            input2Placeholder = '數字';
+            showInput2 = true;
+            break;
+          case 'addCourse':
+            title = '新增課程費用';
+            label1 = '課程總費用 (元)';
+            label2 = '課程期數 (月)';
+            input1Type = 'number';
+            input2Type = 'number';
+            input2Placeholder = '整數';
+            showInput2 = true;
+            break;
+          case 'setSalary':
+            title = '設定薪水';
+            label1 = '月薪 (元)';
+            input1Type = 'number';
+            showInput2 = false;
+            break;
+          case 'setLivingExpense':
+            title = '設定生活費';
+            label1 = '月生活費 (元)';
+            input1Type = 'number';
+            showInput2 = false;
+            break;
+          case 'setStartMonth':
+            title = '設定起始月份';
+            label1 = '起始月份 (1~12)';
+            input1Type = 'number';
+            showInput2 = false;
+            break;
+          default:
+            return null;
+        }
 
-      const setSalary = async () => {
-        const salaryInput = document.getElementById('salary-input');
-        const salary = parseFloat(salaryInput.value);
+        return (
+          <div className="modal" onClick={closeModal}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <h2 className="text-xl font-bold mb-4">{title}</h2>
+              <label className="block mb-1 font-semibold">{label1}</label>
+              <input
+                type={input1Type}
+                className="w-full border rounded px-3 py-2 mb-3"
+                value={input1}
+                onChange={e => setInput1(e.target.value)}
+                autoFocus
+              />
+              {showInput2 && (
+                <>
+                  <label className="block mb-1 font-semibold">{label2}</label>
+                  <input
+                    type={input2Type}
+                    className="w-full border rounded px-3 py-2 mb-3"
+                    value={input2}
+                    onChange={e => setInput2(e.target.value)}
+                    placeholder={input2Placeholder}
+                  />
+                </>
+              )}
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={onConfirm}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                >
+                  確定
+                </button>
+                <button
+                  onClick={closeModal}
+                  className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded"
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      };
 
-        if (isNaN(salary) || salary < 0) {
-            alert('薪水必須為有效數字且非負數');
-            salaryInput.focus();
-            return;
-        }
-        const res = await apiPost('/api/set_salary', { salary });
-        if (res.status === 'error') alert(res.message);
-        else setState({ ...state, salary: res.salary, modal: null });
-      };
+      return (
+        <div className="max-w-3xl mx-auto p-6 bg-white rounded shadow mt-10 flex flex-col">
+          <h1 className="text-3xl font-bold text-center mb-6">💰 超級還款試算表 - 完整版</h1>
 
-      const setLivingExpense = async () => {
-        const expenseInput = document.getElementById('expense-input');
-        const expense = parseFloat(expenseInput.value);
+          <div className="mb-6 text-center text-gray-700 space-y-1">
+            <p>薪水：<span className="font-semibold">{state.salary.toFixed(2)} 元</span></p>
+            <p>生活費：<span className="font-semibold">{state.livingExpense.toFixed(2)} 元</span></p>
+            <p>起始月份：<span className="font-semibold">{state.startMonth} 月</span></p>
+          </div>
 
-        if (isNaN(expense) || expense < 0) {
-            alert('生活費必須為有效數字且非負數');
-            expenseInput.focus();
-            return;
-        }
-        const res = await apiPost('/api/set_living_expense', { expense });
-        if (res.status === 'error') alert(res.message);
-        else setState({ ...state, living_expense: res.living_expense, modal: null });
-      };
+          {/* 操作按鈕群 */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+            <button
+              className="bg-blue-500 hover:bg-blue-600 text-white py-2 rounded"
+              onClick={() => openModal('addPerson')}
+              type="button"
+            >
+              新增還款人
+            </button>
+            <button
+              className="bg-green-500 hover:bg-green-600 text-white py-2 rounded"
+              onClick={() => openModal('addCourse')}
+              type="button"
+            >
+              新增課程費用
+            </button>
+            <button
+              className="bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded"
+              onClick={() => openModal('setSalary')}
+              type="button"
+            >
+              設定薪水
+            </button>
+            <button
+              className="bg-yellow-500 hover:bg-yellow-600 text-white py-2 rounded"
+              onClick={() => openModal('setLivingExpense')}
+              type="button"
+            >
+              設定生活費
+            </button>
+            <button
+              className="bg-purple-500 hover:bg-purple-600 text-white py-2 rounded"
+              onClick={() => openModal('setStartMonth')}
+              type="button"
+            >
+              設定起始月份
+            </button>
+            <button
+              className="bg-red-500 hover:bg-red-600 text-white py-2 rounded"
+              onClick={calculateRepayment}
+              type="button"
+            >
+              開始試算
+            </button>
+            <button
+              className="col-span-2 sm:col-span-1 bg-teal-500 hover:bg-teal-600 text-white py-2 rounded"
+              onClick={exportCSV}
+              type="button"
+            >
+              匯出CSV
+            </button>
+            <button
+              className="col-span-2 sm:col-span-1 bg-gray-700 hover:bg-gray-900 text-white py-2 rounded"
+              onClick={resetAll}
+              type="button"
+            >
+              清空所有資料
+            </button>
+          </div>
 
-      const setStartMonth = async () => {
-        const startMonthInput = document.getElementById('start-month-input');
-        const start_month = parseInt(startMonthInput.value, 10);
+          {/* 顯示結果區 */}
+          <textarea
+            readOnly
+            className="h-96 p-4 border border-gray-300 rounded resize-none bg-gray-50 text-sm font-mono overflow-auto"
+            value={state.calculationResult || '請設定資料並點擊「開始試算」以顯示結果'}
+          />
 
-        if (isNaN(start_month) || start_month < 1 || start_month > 12) {
-            alert('起始月份必須是 1 到 12 之間的整數');
-            startMonthInput.focus();
-            return;
-        }
-        const res = await apiPost('/api/set_start_month', { start_month });
-        if (res.status === 'error') alert(res.message);
-        else setState({ ...state, start_month: res.start_month, modal: null });
-      };
+          {/* Modal */}
+          {state.modalType && <ModalContent />}
+        </div>
+      );
+    }
 
-      const calculate = async () => {
-        if (state.salary <= 0) {
-            alert('請先設定您的薪水 (必須大於 0)。');
-            showModal('setSalary');
-            return;
-        }
-        if (state.living_expense < 0) {
-            alert('請設定您的生活費 (必須非負數)。');
-            showModal('setLivingExpense');
-            return;
-        }
-        if (state.repay_list.length === 0 && state.course_list.length === 0) {
-            alert('請新增還款人或課程後再進行試算。');
-            return;
-        }
-        const res = await apiPost('/api/calculate');
-        if (res.status === 'error') alert(res.message);
-        else setState({ ...state, result: res.result });
-      };
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 
-      const exportCsv = () => {
-        if (!state.result) {
-            alert('無試算結果可匯出');
-            return;
-        }
-        alert('此功能會導出當前試算結果為 CSV (需後端支援)');
-        // window.location.href = '/api/export_csv';
-      };
-
-      const copyResult = () => {
-        if (!state.result) {
-            alert('無試算結果');
-            return;
-        }
-        navigator.clipboard.writeText(state.result);
-        alert('已複製到剪貼簿');
-      };
-
-      const clearAll = async () => {
-        if (!confirm('確定要清空所有設定和結果嗎？')) {
-            return;
-        }
-        const res = await apiPost('/api/reset');
-        alert(res.message);
-        setState({
-          salary: 0, living_expense: 0, start_month: 1, // Changed default to 0
-          repay_list: [], course_list: [], result: '', modal: null
-        });
-      };
-
-      const exitApp = () => {
-        if (confirm('確定離開？')) {
-            window.close();
-            alert('感謝使用！');
-        }
-      };
-
-      return (
-        <div className="max-w-xl w-full mx-auto bg-white p-4 rounded-lg shadow flex-grow flex flex-col">
-          <h1 className="text-xl font-bold text-center mb-4">💰 超級還款試算表</h1>
-
-          <div className="flex flex-wrap gap-2 mb-4">
-            <button className="px-3 py-2 bg-yellow-300 rounded text-sm font-bold" onClick={exportCsv} disabled={!state.result}>💾 匯出 CSV</button>
-            <button className="px-3 py-2 bg-blue-300 rounded text-sm font-bold" onClick={copyResult} disabled={!state.result}>📋 複製結果</button>
-            <button className="px-3 py-2 bg-pink-300 rounded text-sm font-bold" onClick={() => showModal('addPerson')}>➕ 還款人</button>
-            <button className="px-3 py-2 bg-indigo-200 rounded text-sm font-bold" onClick={() => showModal('addCourse')}>➕ 課程</button>
-            <button className="px-3 py-2 bg-sky-300 rounded text-sm font-bold" onClick={() => showModal('setSalary')}>💼 薪水</button>
-            <button className="px-3 py-2 bg-yellow-200 rounded text-sm font-bold" onClick={() => showModal('setLivingExpense')}>🍙 生活費</button>
-            <button className="px-3 py-2 bg-orange-200 rounded text-sm font-bold" onClick={() => showModal('setStartMonth')}>📆 起始月</button>
-            <button className="px-3 py-2 bg-purple-200 rounded text-sm font-bold" onClick={clearAll}>🧹 清空</button>
-            <button className="px-3 py-2 bg-red-400 text-white rounded text-sm font-bold" onClick={exitApp}>❌ 離開</button>
-          </div>
-
-          <div className="text-sm mb-2">薪水: {state.salary.toFixed(2)} 元 | 生活費: {state.living_expense.toFixed(2)} 元 | 起始月: {state.start_month}</div>
-
-          {/* 顯示原始債務和剩餘債務 */}
-          <textarea readOnly className="w-full h-24 p-2 border rounded mb-2 text-sm" value={state.repay_list.map(p => `${p.name} 欠 ${p.debt.toFixed(2)} 元`).join('\n') || '尚無還款人' }></textarea>
-          <textarea readOnly className="w-full h-24 p-2 border rounded mb-2 text-sm" value={state.course_list.length ? state.course_list.map((c, i) => `課程${i+1}: 總 ${c.fee.toFixed(2)} 元，分 ${c.months} 期`).join('\n') : '尚無課程'}></textarea>
-
-          <button className="w-full py-3 bg-green-300 rounded font-bold text-sm mb-4" onClick={calculate}>📊 開始試算</button>
-          <textarea readOnly className="w-full flex-grow p-2 border rounded text-sm" value={state.result || '點擊 "開始試算" 後顯示結果' }></textarea>
-
-          {/* Modal 視窗 */}
-          {state.modal && (
-            <div className="modal">
-              <div className="modal-content">
-                {state.modal === 'addPerson' && (
-                  <div>
-                    <h3 className="font-bold mb-2">新增還款人</h3>
-                    <input id="person-name" className="border p-1 w-full mb-2" placeholder="姓名" type="text" />
-                    <input id="person-debt" className="border p-1 w-full mb-2" placeholder="欠款金額" type="number" step="0.01" />
-                    <button className="bg-green-400 px-3 py-1 rounded mr-2" onClick={addPerson}>新增</button>
-                    <button className="bg-gray-300 px-3 py-1 rounded" onClick={closeModal}>取消</button>
-                  </div>
-                )}
-
-                {state.modal === 'addCourse' && (
-                  <div>
-                    <h3 className="font-bold mb-2">新增課程</h3>
-                    <input id="course-fee" className="border p-1 w-full mb-2" placeholder="課程總費用" type="number" step="0.01" />
-                    <input id="course-months" className="border p-1 w-full mb-2" placeholder="分期月數" type="number" min="1" step="1" />
-                    <button className="bg-green-400 px-3 py-1 rounded mr-2" onClick={addCourse}>新增</button>
-                    <button className="bg-gray-300 px-3 py-1 rounded" onClick={closeModal}>取消</button>
-                  </div>
-                )}
-
-                {state.modal === 'setSalary' && (
-                  <div>
-                    <h3 className="font-bold mb-2">設定薪水</h3>
-                    <input id="salary-input" className="border p-1 w-full mb-2" placeholder="月薪" type="number" step="0.01" />
-                    <button className="bg-green-400 px-3 py-1 rounded mr-2" onClick={setSalary}>設定</button>
-                    <button className="bg-gray-300 px-3 py-1 rounded" onClick={closeModal}>取消</button>
-                  </div>
-                )}
-
-                {state.modal === 'setLivingExpense' && (
-                  <div>
-                    <h3 className="font-bold mb-2">設定生活費</h3>
-                    <input id="expense-input" className="border p-1 w-full mb-2" placeholder="每月生活費" type="number" step="0.01" />
-                    <button className="bg-green-400 px-3 py-1 rounded mr-2" onClick={setLivingExpense}>設定</button>
-                    <button className="bg-gray-300 px-3 py-1 rounded" onClick={closeModal}>取消</button>
-                  </div>
-                )}
-
-                {state.modal === 'setStartMonth' && (
-                  <div>
-                    <h3 className="font-bold mb-2">設定起始月份</h3>
-                    <input id="start-month-input" className="border p-1 w-full mb-2" placeholder="起始月份 (1-12)" type="number" min="1" max="12" step="1" />
-                    <button className="bg-green-400 px-3 py-1 rounded mr-2" onClick={setStartMonth}>設定</button>
-                    <button className="bg-gray-300 px-3 py-1 rounded" onClick={closeModal}>取消</button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    ReactDOM.render(<App />, document.getElementById('root'));
-  </script>
-
+  </script>
 </body>
 </html>
