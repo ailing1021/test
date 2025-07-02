@@ -21,7 +21,7 @@ def reset():
     global state
     state = {
         "salary": 0.0,
-        "living_expense": 5000.0,
+        "living_expense": 0.0,
         "start_month": 1,
         "repay_list": [],
         "course_list": [],
