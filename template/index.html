@@ -2,14 +2,16 @@
 <html lang="zh-TW">
 <head>
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3023489511713645"
-      crossorigin="anonymous"></script>
+    crossorigin="anonymous"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>💰 超級還款試算表 - 完整版</title>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.20.12/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+
   <style>
     html, body, #root {
       height: 100%;
@@ -39,32 +41,31 @@
       white-space: pre-wrap;
     }
   </style>
+
   <meta name="google-site-verification" content="BCvXzgcedvqCehBvT5sfZjBzHe56ld3ft6gNTqERsyE" />
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-WGEGPPKK5D"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){ dataLayer.push(arguments); }
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-WGEGPPKK5D"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
 
-  gtag('js', new Date());
+    gtag('js', new Date());
 
-  // Google Consent Mode v2 預設為拒絕，等待使用者選擇
-  gtag('consent', 'default', {
-    ad_storage: 'denied',
-    analytics_storage: 'denied'
-  });
+    // Google Consent Mode v2 預設為拒絕，等待使用者選擇
+    gtag('consent', 'default', {
+      ad_storage: 'denied',
+      analytics_storage: 'denied'
+    });
 
-  // 初始化 Google Analytics
-  gtag('config', 'G-WGEGPPKK5D');
-</script>
+    // 初始化 Google Analytics
+    gtag('config', 'G-WGEGPPKK5D');
+  </script>
 </head>
 <body>
-  <meta name="google-site-verification" content="BCvXzgcedvqCehBvT5sfZjBzHe56ld3ft6gNTqERsyE" />
   <div id="root" class="h-full flex flex-col"></div>
 
   <script type="text/babel">
-
     function App() {
-      // 初始狀態，現在主要作為預設值，實際數據從後端獲取
+      // 初始狀態：主要作為預設值，實際數據從後端獲取
       const getInitialState = () => {
         return {
           salary: 0,
@@ -81,7 +82,6 @@
 
       // Effect Hook 用於在組件載入時從後端獲取最新狀態
       React.useEffect(() => {
-        // 首次載入時嘗試從後端獲取狀態
         fetchCurrentState();
       }, []); // 空依賴數組表示只在組件 mount 時運行一次
 
@@ -100,15 +100,16 @@
               courseList: data.course_list || [],
             }));
           } else {
-            console.error('Failed to fetch current state:', response.status, response.statusText);
-            alert('無法獲取最新狀態，請檢查伺服器或網路連線。');
+            // 處理非 200 OK 的響應
+            const errorData = await response.json().catch(() => ({ message: response.statusText }));
+            console.error('Failed to fetch current state:', response.status, errorData.message);
+            alert(`無法獲取最新狀態，請檢查伺服器或網路連線。錯誤：${errorData.message}`);
           }
         } catch (error) {
           console.error('Error fetching current state:', error);
           alert('獲取最新狀態時發生網路錯誤或伺服器問題。');
         }
       };
-
 
       const openModal = (type) => {
         setState(prev => ({ ...prev, modalType: type }));
@@ -124,7 +125,7 @@
           alert("姓名不能為空");
           return false;
         }
-        if (isNaN(parseFloat(debt)) || parseFloat(debt) <= 0) { // 使用 parseFloat 確保數字檢查
+        if (isNaN(parseFloat(debt)) || parseFloat(debt) <= 0) {
           alert("欠款金額必須大於0");
           return false;
         }
@@ -138,7 +139,7 @@
           });
           const data = await response.json();
           if (response.ok && data.status === 'success') {
-            await fetchCurrentState(); // 成功後從後端重新獲取數據
+            await fetchCurrentState();
             return true;
           } else {
             alert("新增還款人失敗: " + (data.message || response.statusText));
@@ -157,7 +158,7 @@
           alert("課程總費用必須大於0");
           return false;
         }
-        if (!Number.isInteger(parseInt(months)) || parseInt(months) <= 0) { // 使用 parseInt
+        if (!Number.isInteger(parseInt(months)) || parseInt(months) <= 0) {
           alert("課程期數必須是大於0的整數");
           return false;
         }
@@ -171,7 +172,7 @@
           });
           const data = await response.json();
           if (response.ok && data.status === 'success') {
-            await fetchCurrentState(); // 成功後從後端重新獲取數據
+            await fetchCurrentState();
             return true;
           } else {
             alert("新增課程失敗: " + (data.message || response.statusText));
@@ -200,7 +201,7 @@
           });
           const data = await response.json();
           if (response.ok && data.status === 'success') {
-            await fetchCurrentState(); // 成功後從後端重新獲取數據
+            await fetchCurrentState();
             return true;
           } else {
             alert("設定薪水失敗: " + (data.message || response.statusText));
@@ -229,7 +230,7 @@
           });
           const data = await response.json();
           if (response.ok && data.status === 'success') {
-            await fetchCurrentState(); // 成功後從後端重新獲取數據
+            await fetchCurrentState();
             return true;
           } else {
             alert("設定生活費失敗: " + (data.message || response.statusText));
@@ -259,7 +260,7 @@
           });
           const data = await response.json();
           if (response.ok && data.status === 'success') {
-            await fetchCurrentState(); // 成功後從後端重新獲取數據
+            await fetchCurrentState();
             return true;
           } else {
             alert("設定起始月份失敗: " + (data.message || response.statusText));
@@ -281,7 +282,16 @@
         newList.splice(index, 1);
         setState(prev => ({ ...prev, repayList: newList }));
         // 如果有後端刪除 API，應該在這裡調用：
-        // await fetch('/api/remove_person', { method: 'POST', body: JSON.stringify({ index: index }) });
+        // fetch('/api/remove_person', { method: 'POST', body: JSON.stringify({ index: index }) })
+        //   .then(response => response.json())
+        //   .then(data => {
+        //     if (data.status === 'success') {
+        //       fetchCurrentState(); // 成功後從後端重新獲取數據
+        //     } else {
+        //       alert('後端移除還款人失敗: ' + data.message);
+        //     }
+        //   })
+        //   .catch(error => console.error('Error removing person from backend:', error));
       };
 
       // 刪除課程 - 同上，後端目前沒有獨立的刪除 API
@@ -291,18 +301,27 @@
         newList.splice(index, 1);
         setState(prev => ({ ...prev, courseList: newList }));
         // 如果有後端刪除 API，應該在這裡調用：
-        // await fetch('/api/remove_course', { method: 'POST', body: JSON.stringify({ index: index }) });
+        // fetch('/api/remove_course', { method: 'POST', body: JSON.stringify({ index: index }) })
+        //   .then(response => response.json())
+        //   .then(data => {
+        //     if (data.status === 'success') {
+        //       fetchCurrentState(); // 成功後從後端重新獲取數據
+        //     } else {
+        //       alert('後端移除課程失敗: ' + data.message);
+        //     }
+        //   })
+        //   .catch(error => console.error('Error removing course from backend:', error));
       };
 
       // 計算還款試算表 - 呼叫後端 API
       const calculate = async () => {
         try {
           const response = await fetch('/api/calculate', {
-            method: 'POST', // Flask 後端設定為 POST
+            method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({}) // 計算 API 不需額外傳送數據，因為後端會使用其自身維護的 state
+            body: JSON.stringify({})
           });
           const data = await response.json();
           if (response.ok && data.status === 'success') {
@@ -321,6 +340,21 @@
         }
       };
 
+      // 複製試算結果到剪貼簿
+      const copyResult = async () => {
+        try {
+          if (state.calculationResult) {
+            await navigator.clipboard.writeText(state.calculationResult);
+            alert('試算結果已複製到剪貼簿！');
+          } else {
+            alert('沒有試算結果可供複製。');
+          }
+        } catch (err) {
+          console.error('複製失敗:', err);
+          alert('無法複製到剪貼簿，請手動選取文字複製。');
+        }
+      };
+
       // 匯出CSV - 呼叫後端 API
       const exportCsv = async () => {
         try {
@@ -328,7 +362,6 @@
             method: 'GET',
           });
           if (response.ok) {
-            // 從響應頭獲取檔案名稱
             const contentDisposition = response.headers.get('Content-Disposition');
             let filename = 'repay_result.csv'; // 預設檔名
             if (contentDisposition && contentDisposition.includes('filename=')) {
@@ -346,7 +379,7 @@
             window.URL.revokeObjectURL(url);
             alert("CSV 檔案已成功下載。");
           } else {
-            const errorData = await response.json();
+            const errorData = await response.json().catch(() => ({ message: response.statusText }));
             alert("匯出CSV失敗: " + (errorData.message || response.statusText));
           }
         } catch (error) {
@@ -364,7 +397,7 @@
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({}) // reset API 可能是空 body
+            body: JSON.stringify({})
           });
           const data = await response.json();
           if (response.ok && data.status === 'success') {
@@ -383,8 +416,11 @@
       // 離開應用程式（瀏覽器行為）
       const exitApp = () => {
         if (confirm('確定離開？')) {
-          window.close(); // 嘗試關閉當前視窗/標籤頁
-          alert('感謝使用！');
+          // window.close() 只能關閉由腳本開啟的視窗，對於用戶手動開啟的頁面可能無效
+          // 更好的做法是導向一個空白頁或提示用戶手動關閉
+          window.location.href = 'about:blank';
+          // 或者直接提示，不嘗試關閉
+          // alert('感謝使用！請手動關閉瀏覽器標籤頁。');
         }
       };
 
@@ -395,7 +431,7 @@
         let input1Ref = React.useRef(null);
         let input2Ref = React.useRef(null);
 
-        const handleSubmit = async () => { // 這裡也要變成 async
+        const handleSubmit = async () => {
           let success = false;
           switch (state.modalType) {
             case 'addPerson':
@@ -415,7 +451,7 @@
               break;
             default:
               closeModal();
-              return; // Add return to prevent further execution if no specific type matches
+              return;
           }
           if (success) {
               closeModal();
@@ -533,7 +569,7 @@
           {/* 按鈕區 */}
           <div className="flex flex-wrap gap-3 mb-6 justify-center">
             <button
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 whitespace-nowrap"
               onClick={() => openModal('setSalary')}
               title="設定薪水"
             >
@@ -541,7 +577,7 @@
             </button>
 
             <button
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 whitespace-nowrap"
               onClick={() => openModal('setLivingExpense')}
               title="設定生活費"
             >
@@ -549,7 +585,7 @@
             </button>
 
             <button
-              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 whitespace-nowrap"
               onClick={() => openModal('setStartMonth')}
               title="設定起始月份"
             >
@@ -557,7 +593,7 @@
             </button>
 
             <button
-              className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+              className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 whitespace-nowrap"
               onClick={() => openModal('addPerson')}
               title="新增還款人"
             >
@@ -565,7 +601,7 @@
             </button>
 
             <button
-              className="bg-pink-600 text-white px-4 py-2 rounded hover:bg-pink-700"
+              className="bg-pink-600 text-white px-4 py-2 rounded hover:bg-pink-700 whitespace-nowrap"
               onClick={() => openModal('addCourse')}
               title="新增課程費用"
             >
@@ -573,7 +609,7 @@
             </button>
 
             <button
-              className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700"
+              className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700 whitespace-nowrap"
               onClick={calculate}
               title="開始計算"
             >
@@ -581,7 +617,7 @@
             </button>
 
             <button
-              className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+              className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 whitespace-nowrap"
               onClick={copyResult}
               title="複製試算結果"
             >
@@ -589,7 +625,7 @@
             </button>
 
             <button
-              className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700"
+              className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 whitespace-nowrap"
               onClick={exportCsv}
               title="匯出試算結果CSV"
             >
@@ -597,7 +633,7 @@
             </button>
 
             <button
-              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 whitespace-nowrap"
               onClick={clearAll}
               title="清空所有資料"
             >
@@ -605,7 +641,7 @@
             </button>
 
             <button
-              className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800"
+              className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800 whitespace-nowrap"
               onClick={exitApp}
               title="離開網頁"
             >
@@ -700,73 +736,74 @@
 
     ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
-</div>
-<div id="cookie-banner" style="
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  background: #f8f8f8;
-  padding: 16px;
-  box-shadow: 0 -2px 6px rgba(0,0,0,0.15);
-  font-family: sans-serif;
-  font-size: 14px;
-  color: #333;
-  z-index: 9999;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-">
-  <span style="flex: 1; min-width: 200px; text-align: center;">
-    我們使用 Cookie 改善網站功能與分析流量。請選擇是否接受。
-  </span>
-  <div>
-    <button onclick="acceptCookies()" style="background: #007bff; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer;">
-      接受全部
-    </button>
-    <button onclick="declineCookies()" style="background: #ccc; color: #000; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; margin-left: 8px;">
-      僅使用必要
-    </button>
+
+  <div id="cookie-banner" style="
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #f8f8f8;
+    padding: 16px;
+    box-shadow: 0 -2px 6px rgba(0,0,0,0.15);
+    font-family: sans-serif;
+    font-size: 14px;
+    color: #333;
+    z-index: 9999;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+  ">
+    <span style="flex: 1; min-width: 200px; text-align: center;">
+      我們使用 Cookie 改善網站功能與分析流量。請選擇是否接受。
+    </span>
+    <div>
+      <button onclick="acceptCookies()" style="background: #007bff; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer;">
+        接受全部
+      </button>
+      <button onclick="declineCookies()" style="background: #ccc; color: #000; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; margin-left: 8px;">
+        僅使用必要
+      </button>
+    </div>
   </div>
-</div>
 
-<script>
-  function acceptCookies() {
-    localStorage.setItem('cookieConsent', 'accepted');
-    if (typeof gtag === 'function') {
-      gtag('consent', 'update', {
-        ad_storage: 'granted',
-        analytics_storage: 'granted'
-      });
+  <script>
+    function acceptCookies() {
+      localStorage.setItem('cookieConsent', 'accepted');
+      if (typeof gtag === 'function') {
+        gtag('consent', 'update', {
+          ad_storage: 'granted',
+          analytics_storage: 'granted'
+        });
+      }
+      document.getElementById('cookie-banner').style.display = 'none';
     }
-    document.getElementById('cookie-banner').style.display = 'none';
-  }
 
-  function declineCookies() {
-    localStorage.setItem('cookieConsent', 'declined');
-    if (typeof gtag === 'function') {
-      gtag('consent', 'update', {
-        ad_storage: 'denied',
-        analytics_storage: 'denied'
-      });
+    function declineCookies() {
+      localStorage.setItem('cookieConsent', 'declined');
+      if (typeof gtag === 'function') {
+        gtag('consent', 'update', {
+          ad_storage: 'denied',
+          analytics_storage: 'denied'
+        });
+      }
+      document.getElementById('cookie-banner').style.display = 'none';
     }
-    document.getElementById('cookie-banner').style.display = 'none';
-  }
 
-  // 判斷是否已做出選擇
-  if (localStorage.getItem('cookieConsent')) {
-    document.getElementById('cookie-banner').style.display = 'none';
-  }
-</script>
+    // 判斷是否已做出選擇
+    if (localStorage.getItem('cookieConsent')) {
+      document.getElementById('cookie-banner').style.display = 'none';
+    }
+  </script>
+
   <footer class="text-center text-sm text-gray-500 mt-10 py-4 border-t border-gray-300">
-  <p>
-    <a href="/about" class="underline hover:text-blue-600">關於我們</a> |
-    <a href="/privacy" class="underline hover:text-blue-600">隱私權政策</a> |
-    <a href="/terms" class="underline hover:text-blue-600">服務條款</a> |
-    <a href="/contact" class="underline hover:text-blue-600">聯絡我們</a>
-  </p>
-</footer>
+    <p>
+      <a href="/about" class="underline hover:text-blue-600">關於我們</a> |
+      <a href="/privacy" class="underline hover:text-blue-600">隱私權政策</a> |
+      <a href="/terms" class="underline hover:text-blue-600">服務條款</a> |
+      <a href="/contact" class="underline hover:text-blue-600">聯絡我們</a>
+    </p>
+  </footer>
 </body>
 </html>
