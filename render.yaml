@@ -3,7 +3,7 @@ services:
     name: super-repay
     env: python
     buildCommand: ""
-    startCommand: "python money_net.py"
+    startCommand: "gunicorn money_net:app"
 
   - type: cron
     name: keep-alive-cron
