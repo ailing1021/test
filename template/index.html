@@ -2,15 +2,13 @@
 <html lang="zh-TW">
 <head>
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3023489511713645"
-     crossorigin="anonymous"></script>
+      crossorigin="anonymous"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>💰 超級還款試算表 - 完整版</title>
-  <!-- React CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.20.12/babel.min.js"></script>
-  <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     html, body, #root {
@@ -42,8 +40,7 @@
     }
   </style>
   <meta name="google-site-verification" content="BCvXzgcedvqCehBvT5sfZjBzHe56ld3ft6gNTqERsyE" />
-<!-- Google Analytics GA4 追蹤碼 -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXX"></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-WGEGPPKK5D"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){ dataLayer.push(arguments); }
@@ -67,39 +64,51 @@
   <script type="text/babel">
 
     function App() {
+      // 初始狀態，現在主要作為預設值，實際數據從後端獲取
       const getInitialState = () => {
-        try {
-          return {
-            salary: parseFloat(localStorage.getItem('salary')) || 0,
-            livingExpense: parseFloat(localStorage.getItem('livingExpense')) || 0,
-            startMonth: parseInt(localStorage.getItem('startMonth')) || 1,
-            repayList: JSON.parse(localStorage.getItem('repayList')) || [],
-            courseList: JSON.parse(localStorage.getItem('courseList')) || [],
-            calculationResult: '',
-            modalType: null,
-          };
-        } catch (e) {
-          return {
-            salary: 0,
-            livingExpense: 0,
-            startMonth: 1,
-            repayList: [],
-            courseList: [],
-            calculationResult: '',
-            modalType: null,
-          };
-        }
+        return {
+          salary: 0,
+          livingExpense: 0,
+          startMonth: 1,
+          repayList: [],
+          courseList: [],
+          calculationResult: '',
+          modalType: null,
+        };
       };
 
       const [state, setState] = React.useState(getInitialState);
 
+      // Effect Hook 用於在組件載入時從後端獲取最新狀態
       React.useEffect(() => {
-        localStorage.setItem('salary', state.salary);
-        localStorage.setItem('livingExpense', state.livingExpense);
-        localStorage.setItem('startMonth', state.startMonth);
-        localStorage.setItem('repayList', JSON.stringify(state.repayList));
-        localStorage.setItem('courseList', JSON.stringify(state.courseList));
-      }, [state.salary, state.livingExpense, state.startMonth, state.repayList, state.courseList]);
+        // 首次載入時嘗試從後端獲取狀態
+        fetchCurrentState();
+      }, []); // 空依賴數組表示只在組件 mount 時運行一次
+
+      // 輔助函數：從後端獲取當前應用程式狀態並更新前端 state
+      const fetchCurrentState = async () => {
+        try {
+          const response = await fetch('/api/get_current_state');
+          if (response.ok) {
+            const data = await response.json();
+            setState(prev => ({
+              ...prev,
+              salary: data.salary || 0,
+              livingExpense: data.living_expense || 0,
+              startMonth: data.start_month || 1,
+              repayList: data.repay_list || [],
+              courseList: data.course_list || [],
+            }));
+          } else {
+            console.error('Failed to fetch current state:', response.status, response.statusText);
+            alert('無法獲取最新狀態，請檢查伺服器或網路連線。');
+          }
+        } catch (error) {
+          console.error('Error fetching current state:', error);
+          alert('獲取最新狀態時發生網路錯誤或伺服器問題。');
+        }
+      };
+
 
       const openModal = (type) => {
         setState(prev => ({ ...prev, modalType: type }));
@@ -109,251 +118,272 @@
         setState(prev => ({ ...prev, modalType: null }));
       };
 
-      const addPerson = (name, debt) => {
+      // 修改為呼叫後端 API
+      const addPerson = async (name, debt) => {
         if (!name.trim()) {
           alert("姓名不能為空");
           return false;
         }
-        if (isNaN(debt) || debt <= 0) {
+        if (isNaN(parseFloat(debt)) || parseFloat(debt) <= 0) { // 使用 parseFloat 確保數字檢查
           alert("欠款金額必須大於0");
           return false;
         }
-        const newPerson = {
-          name: name.trim(),
-          debt: parseFloat(debt),
-          remainingDebt: parseFloat(debt),
-        };
-        setState(prev => ({
-          ...prev,
-          repayList: [...prev.repayList, newPerson],
-          modalType: null,
-        }));
-        return true;
+        try {
+          const response = await fetch('/api/add_person', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ name: name.trim(), debt: parseFloat(debt) }),
+          });
+          const data = await response.json();
+          if (response.ok && data.status === 'success') {
+            await fetchCurrentState(); // 成功後從後端重新獲取數據
+            return true;
+          } else {
+            alert("新增還款人失敗: " + (data.message || response.statusText));
+            return false;
+          }
+        } catch (error) {
+          console.error('Error adding person:', error);
+          alert('新增還款人時發生網路錯誤或伺服器問題。');
+          return false;
+        }
       };
 
-      const addCourse = (fee, months) => {
-        if (isNaN(fee) || fee <= 0) {
+      // 修改為呼叫後端 API
+      const addCourse = async (fee, months) => {
+        if (isNaN(parseFloat(fee)) || parseFloat(fee) <= 0) {
           alert("課程總費用必須大於0");
           return false;
         }
-        if (!Number.isInteger(months) || months <= 0) {
+        if (!Number.isInteger(parseInt(months)) || parseInt(months) <= 0) { // 使用 parseInt
           alert("課程期數必須是大於0的整數");
           return false;
         }
-        const newCourse = {
-          fee: parseFloat(fee),
-          months: months,
-          remainingFee: parseFloat(fee),
-        };
-        setState(prev => ({
-          ...prev,
-          courseList: [...prev.courseList, newCourse],
-          modalType: null,
-        }));
-        return true;
+        try {
+          const response = await fetch('/api/add_course', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ fee: parseFloat(fee), months: parseInt(months) }),
+          });
+          const data = await response.json();
+          if (response.ok && data.status === 'success') {
+            await fetchCurrentState(); // 成功後從後端重新獲取數據
+            return true;
+          } else {
+            alert("新增課程失敗: " + (data.message || response.statusText));
+            return false;
+          }
+        } catch (error) {
+          console.error('Error adding course:', error);
+          alert('新增課程時發生網路錯誤或伺服器問題。');
+          return false;
+        }
       };
 
-      const setSalary = (salary) => {
-        if (isNaN(salary) || salary < 0) {
+      // 修改為呼叫後端 API
+      const setSalary = async (salary) => {
+        if (isNaN(parseFloat(salary)) || parseFloat(salary) < 0) {
           alert("薪水必須是非負數");
           return false;
         }
-        setState(prev => ({
-          ...prev,
-          salary: parseFloat(salary),
-          modalType: null,
-        }));
-        return true;
+        try {
+          const response = await fetch('/api/set_salary', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ salary: parseFloat(salary) }),
+          });
+          const data = await response.json();
+          if (response.ok && data.status === 'success') {
+            await fetchCurrentState(); // 成功後從後端重新獲取數據
+            return true;
+          } else {
+            alert("設定薪水失敗: " + (data.message || response.statusText));
+            return false;
+          }
+        } catch (error) {
+          console.error('Error setting salary:', error);
+          alert('設定薪水時發生網路錯誤或伺服器問題。');
+          return false;
+        }
       };
 
-      const setLivingExpense = (expense) => {
-        if (isNaN(expense) || expense < 0) {
+      // 修改為呼叫後端 API
+      const setLivingExpense = async (expense) => {
+        if (isNaN(parseFloat(expense)) || parseFloat(expense) < 0) {
           alert("生活費必須是非負數");
           return false;
         }
-        setState(prev => ({
-          ...prev,
-          livingExpense: parseFloat(expense),
-          modalType: null,
-        }));
-        return true;
+        try {
+          const response = await fetch('/api/set_living_expense', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ expense: parseFloat(expense) }),
+          });
+          const data = await response.json();
+          if (response.ok && data.status === 'success') {
+            await fetchCurrentState(); // 成功後從後端重新獲取數據
+            return true;
+          } else {
+            alert("設定生活費失敗: " + (data.message || response.statusText));
+            return false;
+          }
+        } catch (error) {
+          console.error('Error setting living expense:', error);
+          alert('設定生活費時發生網路錯誤或伺服器問題。');
+          return false;
+        }
       };
 
-      const setStartMonth = (month) => {
-        if (!Number.isInteger(month) || month < 1 || month > 12) {
+      // 修改為呼叫後端 API
+      const setStartMonth = async (month) => {
+        const monthInt = parseInt(month);
+        if (!Number.isInteger(monthInt) || monthInt < 1 || monthInt > 12) {
           alert("起始月份必須介於1到12");
           return false;
         }
-        setState(prev => ({
-          ...prev,
-          startMonth: month,
-          modalType: null,
-        }));
-        return true;
+        try {
+          const response = await fetch('/api/set_start_month', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ start_month: monthInt }),
+          });
+          const data = await response.json();
+          if (response.ok && data.status === 'success') {
+            await fetchCurrentState(); // 成功後從後端重新獲取數據
+            return true;
+          } else {
+            alert("設定起始月份失敗: " + (data.message || response.statusText));
+            return false;
+          }
+        } catch (error) {
+          console.error('Error setting start month:', error);
+          alert('設定起始月份時發生網路錯誤或伺服器問題。');
+          return false;
+        }
       };
 
-      // 刪除還款人
+      // 刪除還款人 - 此功能目前僅為前端視覺移除。
+      // 若要讓後端數據也同步移除，您的 Flask 後端需要提供 /api/remove_person API。
+      // 如果沒有後端 API 支援，執行清空資料 (reset) 才是唯一清除後端數據的方法。
       const removePerson = (index) => {
-        if (!confirm(`確定要刪除還款人「${state.repayList[index].name}」嗎？`)) return;
+        if (!confirm(`確定要從前端列表中移除還款人「${state.repayList[index].name}」嗎？\n(注意：此操作不會同步清除後端數據，如需徹底清除請使用「清空資料」)`)) return;
         const newList = [...state.repayList];
         newList.splice(index, 1);
         setState(prev => ({ ...prev, repayList: newList }));
+        // 如果有後端刪除 API，應該在這裡調用：
+        // await fetch('/api/remove_person', { method: 'POST', body: JSON.stringify({ index: index }) });
       };
 
-      // 刪除課程
+      // 刪除課程 - 同上，後端目前沒有獨立的刪除 API
       const removeCourse = (index) => {
-        if (!confirm(`確定要刪除課程 #${index + 1} 嗎？`)) return;
+        if (!confirm(`確定要從前端列表中移除課程 #${index + 1} 嗎？\n(注意：此操作不會同步清除後端數據，如需徹底清除請使用「清空資料」)`)) return;
         const newList = [...state.courseList];
         newList.splice(index, 1);
         setState(prev => ({ ...prev, courseList: newList }));
+        // 如果有後端刪除 API，應該在這裡調用：
+        // await fetch('/api/remove_course', { method: 'POST', body: JSON.stringify({ index: index }) });
       };
 
-      // 計算還款試算表
-      const calculate = () => {
-        if (state.salary <= 0) {
-          alert('請先設定您的薪水 (必須大於 0)。');
-          openModal('setSalary');
-          return;
-        }
-        if (state.livingExpense < 0) {
-          alert('請設定您的生活費 (必須非負數)。');
-          openModal('setLivingExpense');
-          return;
-        }
-        if (state.repayList.length === 0 && state.courseList.length === 0) {
-          alert('請新增還款人或課程後再進行試算。');
-          return;
-        }
-
-        // 複製資料避免改動原本state
-        const repayList = state.repayList.map(p => ({
-          name: p.name,
-          debt: p.debt,
-          remainingDebt: p.debt,
-        }));
-
-        const courseList = state.courseList.map(c => ({
-          fee: c.fee,
-          months: c.months,
-          remainingFee: c.fee,
-        }));
-
-        const salary = state.salary;
-        const livingExpense = state.livingExpense;
-        let currentMonth = state.startMonth; // 1~12
-        let currentYear = new Date().getFullYear();
-
-        let monthCount = 0;
-        let resultLines = [];
-        resultLines.push(`薪水：${salary.toFixed(2)} 元，生活費：${livingExpense.toFixed(2)} 元，起始月：${currentMonth}\n`);
-        resultLines.push("試算結果如下：\n");
-
-        // 計算每個課程每月應付金額（平均攤還）
-        const courseMonthlyPays = courseList.map(c => c.fee / c.months);
-
-        // 繼續試算直到所有課程和欠款都還清
-        while (
-          repayList.some(p => p.remainingDebt > 0) ||
-          courseList.some(c => c.remainingFee > 0)
-        ) {
-          monthCount++;
-          resultLines.push(`===== 第 ${monthCount} 個月：${currentYear} 年 ${currentMonth} 月 =====`);
-
-          let availableMoney = salary - livingExpense;
-          if (availableMoney <= 0) {
-            resultLines.push(`生活費過高，薪水扣除生活費後無法還款。試算結束。`);
-            break;
+      // 計算還款試算表 - 呼叫後端 API
+      const calculate = async () => {
+        try {
+          const response = await fetch('/api/calculate', {
+            method: 'POST', // Flask 後端設定為 POST
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({}) // 計算 API 不需額外傳送數據，因為後端會使用其自身維護的 state
+          });
+          const data = await response.json();
+          if (response.ok && data.status === 'success') {
+            setState(prev => ({
+              ...prev,
+              calculationResult: data.result,
+            }));
+          } else {
+            alert("計算失敗: " + (data.message || response.statusText));
+            setState(prev => ({ ...prev, calculationResult: `錯誤: ${data.message || response.statusText}` }));
           }
+        } catch (error) {
+          console.error('Error during calculation:', error);
+          alert('計算時發生網路錯誤或伺服器問題。');
+          setState(prev => ({ ...prev, calculationResult: `發生錯誤，請檢查網路連線或伺服器。` }));
+        }
+      };
 
-          // 還課程費（每期平均分攤，分月扣款）
-          let coursePayThisMonth = 0;
-          for (let i = 0; i < courseList.length; i++) {
-            const c = courseList[i];
-            if (c.remainingFee > 0) {
-              const pay = Math.min(courseMonthlyPays[i], c.remainingFee, availableMoney);
-              c.remainingFee -= pay;
-              availableMoney -= pay;
-              coursePayThisMonth += pay;
-              resultLines.push(`課程 ${i + 1} 還款 ${pay.toFixed(2)} 元，剩餘 ${c.remainingFee.toFixed(2)} 元`);
-              if (availableMoney <= 0) break;
+      // 匯出CSV - 呼叫後端 API
+      const exportCsv = async () => {
+        try {
+          const response = await fetch('/api/export_csv', {
+            method: 'GET',
+          });
+          if (response.ok) {
+            // 從響應頭獲取檔案名稱
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = 'repay_result.csv'; // 預設檔名
+            if (contentDisposition && contentDisposition.includes('filename=')) {
+                filename = contentDisposition.split('filename=')[1].trim().replace(/"/g, '');
             }
-          }
 
-          // 還欠款人（依序還）
-          let repayThisMonth = 0;
-          if (availableMoney > 0) {
-            for (let i = 0; i < repayList.length; i++) {
-              const p = repayList[i];
-              if (p.remainingDebt > 0) {
-                const pay = Math.min(p.remainingDebt, availableMoney);
-                p.remainingDebt -= pay;
-                availableMoney -= pay;
-                repayThisMonth += pay;
-                resultLines.push(`還款人 ${p.name} 還款 ${pay.toFixed(2)} 元，剩餘欠款 ${p.remainingDebt.toFixed(2)} 元`);
-                if (availableMoney <= 0) break;
-              }
-            }
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename; // 使用後端提供的檔名
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            alert("CSV 檔案已成功下載。");
+          } else {
+            const errorData = await response.json();
+            alert("匯出CSV失敗: " + (errorData.message || response.statusText));
           }
-
-          if (coursePayThisMonth === 0 && repayThisMonth === 0) {
-            resultLines.push("無法繳納更多款項，試算提前結束。");
-            break;
-          }
-
-          // 更新月份跟年份
-          currentMonth++;
-          if (currentMonth > 12) {
-            currentMonth = 1;
-            currentYear++;
-          }
+        } catch (error) {
+          console.error('Error exporting CSV:', error);
+          alert('匯出CSV時發生網路錯誤或伺服器問題。');
         }
-
-        resultLines.push(`\n🎉 全部清償完成，共花費 ${monthCount} 個月。`);
-
-        setState(prev => ({
-          ...prev,
-          calculationResult: resultLines.join('\n'),
-        }));
       };
 
-      // 匯出CSV（示意）
-      const exportCsv = () => {
-        if (!state.calculationResult) {
-          alert('無試算結果可匯出');
-          return;
+      // 清空所有資料 - 呼叫後端 API
+      const clearAll = async () => {
+        if (!confirm('確定要清空所有設定和結果嗎？這將重置所有後端數據。')) return;
+        try {
+          const response = await fetch('/api/reset', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({}) // reset API 可能是空 body
+          });
+          const data = await response.json();
+          if (response.ok && data.status === 'success') {
+            await fetchCurrentState(); // 清空後從後端重新獲取初始狀態
+            setState(prev => ({ ...prev, calculationResult: '' })); // 清空試算結果
+            alert(data.message);
+          } else {
+            alert("清空資料失敗: " + (data.message || response.statusText));
+          }
+        } catch (error) {
+          console.error('Error clearing data:', error);
+          alert('清空資料時發生網路錯誤或伺服器問題。');
         }
-        alert('此功能暫未實作，待後端支援');
       };
 
-      // 複製結果文字
-      const copyResult = () => {
-        if (!state.calculationResult) {
-          alert('無試算結果');
-          return;
-        }
-        navigator.clipboard.writeText(state.calculationResult);
-        alert('已複製結果到剪貼簿');
-      };
-
-      // 清空所有資料
-      const clearAll = () => {
-        if (!confirm('確定要清空所有設定和結果嗎？')) return;
-        localStorage.clear();
-        setState({
-          salary: 0,
-          livingExpense: 0,
-          startMonth: 1,
-          repayList: [],
-          courseList: [],
-          calculationResult: '',
-          modalType: null,
-        });
-      };
-
-      // 離開
+      // 離開應用程式（瀏覽器行為）
       const exitApp = () => {
         if (confirm('確定離開？')) {
-          window.close();
+          window.close(); // 嘗試關閉當前視窗/標籤頁
           alert('感謝使用！');
         }
       };
@@ -362,28 +392,34 @@
       const ModalContent = () => {
         if (!state.modalType) return null;
 
-        let input1 = React.useRef(null);
-        let input2 = React.useRef(null);
+        let input1Ref = React.useRef(null);
+        let input2Ref = React.useRef(null);
 
-        const handleSubmit = () => {
+        const handleSubmit = async () => { // 這裡也要變成 async
+          let success = false;
           switch (state.modalType) {
             case 'addPerson':
-              if (addPerson(input1.current.value, input2.current.value)) closeModal();
+              success = await addPerson(input1Ref.current.value, input2Ref.current.value);
               break;
             case 'addCourse':
-              if (addCourse(input1.current.value, parseInt(input2.current.value))) closeModal();
+              success = await addCourse(input1Ref.current.value, input2Ref.current.value);
               break;
             case 'setSalary':
-              if (setSalary(input1.current.value)) closeModal();
+              success = await setSalary(input1Ref.current.value);
               break;
             case 'setLivingExpense':
-              if (setLivingExpense(input1.current.value)) closeModal();
+              success = await setLivingExpense(input1Ref.current.value);
               break;
             case 'setStartMonth':
-              if (setStartMonth(parseInt(input1.current.value))) closeModal();
+              success = await setStartMonth(input1Ref.current.value);
               break;
             default:
               closeModal();
+              return; // Add return to prevent further execution if no specific type matches
+          }
+          if (success) {
+              closeModal();
+              // fetchCurrentState() 已經在各自的 API 呼叫函數中執行
           }
         };
 
@@ -393,6 +429,8 @@
         let placeholder1 = '';
         let placeholder2 = '';
         let showInput2 = true;
+        let input1Type = 'text'; // Default type
+        let input2Type = 'number'; // Default type
 
         switch (state.modalType) {
           case 'addPerson':
@@ -401,6 +439,8 @@
             label2 = '欠款金額 (元)';
             placeholder1 = '例如：小明';
             placeholder2 = '例如：10000';
+            input1Type = 'text';
+            input2Type = 'number';
             break;
           case 'addCourse':
             title = '🎀 新增課程費用 🎀';
@@ -408,24 +448,29 @@
             label2 = '期數（月）';
             placeholder1 = '例如：30000';
             placeholder2 = '例如：6';
+            input1Type = 'number';
+            input2Type = 'number';
             break;
           case 'setSalary':
             title = '💰 設定薪水 💰';
             label1 = '薪水 (元)';
             placeholder1 = '例如：34000';
             showInput2 = false;
+            input1Type = 'number';
             break;
           case 'setLivingExpense':
             title = '🍀 設定生活費 🍀';
             label1 = '生活費 (元)';
             placeholder1 = '例如：5000';
             showInput2 = false;
+            input1Type = 'number';
             break;
           case 'setStartMonth':
             title = '📅 設定起始月份 📅';
             label1 = '起始月份 (1~12)';
             placeholder1 = '例如：1';
             showInput2 = false;
+            input1Type = 'number';
             break;
           default:
             return null;
@@ -438,19 +483,25 @@
               <div className="mb-3">
                 <label className="block mb-1">{label1}:</label>
                 <input
-                  type={state.modalType.includes('Month') ? 'number' : 'text'}
-                  ref={input1}
+                  type={input1Type}
+                  ref={input1Ref}
                   placeholder={placeholder1}
                   className="w-full border rounded px-2 py-1"
                   autoFocus
+                  // 根據類型設置初始值
+                  defaultValue={
+                    state.modalType === 'setSalary' ? state.salary :
+                    state.modalType === 'setLivingExpense' ? state.livingExpense :
+                    state.modalType === 'setStartMonth' ? state.startMonth : ''
+                  }
                 />
               </div>
               {showInput2 && (
                 <div className="mb-3">
                   <label className="block mb-1">{label2}:</label>
                   <input
-                    type="number"
-                    ref={input2}
+                    type={input2Type}
+                    ref={input2Ref}
                     placeholder={placeholder2}
                     className="w-full border rounded px-2 py-1"
                   />
@@ -535,6 +586,14 @@
               title="複製試算結果"
             >
               複製結果
+            </button>
+
+            <button
+              className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700"
+              onClick={exportCsv}
+              title="匯出試算結果CSV"
+            >
+              匯出CSV
             </button>
 
             <button
@@ -642,7 +701,6 @@
     ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
 </div>
-<!-- ✅ 正規 Cookie 同意橫幅 -->
 <div id="cookie-banner" style="
   position: fixed;
   bottom: 0;
@@ -702,8 +760,7 @@
     document.getElementById('cookie-banner').style.display = 'none';
   }
 </script>
-  <!-- Footer 區塊 -->
-<footer class="text-center text-sm text-gray-500 mt-10 py-4 border-t border-gray-300">
+  <footer class="text-center text-sm text-gray-500 mt-10 py-4 border-t border-gray-300">
   <p>
     <a href="/about" class="underline hover:text-blue-600">關於我們</a> |
     <a href="/privacy" class="underline hover:text-blue-600">隱私權政策</a> |
