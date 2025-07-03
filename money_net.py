@@ -212,6 +212,11 @@ def export_csv():
 @app.route('/')
 def index():
     return app.send_static_file('index.html')
+
+@app.route('/privacy')
+def privacy():
+    return render_template('privacy.html')    # 模板頁面套用 layout
+    
 @app.route('/privacy')
 def privacy():
     return app.send_static_file('privacy.html')
