@@ -4,3 +4,11 @@ services:
     env: python
     buildCommand: ""
     startCommand: "python money_net.py"
+services:
+  - type: cron
+    name: keep-alive-cron
+    schedule: "*/10 * * * *"  # 每 10 分鐘執行一次
+    env: python
+    plan: free
+    buildCommand: ""
+    startCommand: "curl https://test-10-2h45.onrender.com"
