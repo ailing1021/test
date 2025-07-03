@@ -13,7 +13,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 # webdriver_manager 用於自動管理 ChromeDriver
-from webdriver_manager.chrome import ChromeDriverManager # <-- 已移除這裡的 U+00A0 字元
+from webdriver_manager.chrome import ChromeDriverManager
 
 app = Flask(__name__)
 CORS(app) # 啟用 CORS，允許所有來源的跨域請求，方便開發
