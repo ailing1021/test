@@ -215,19 +215,19 @@ def index():
 
 @app.route('/privacy')
 def privacy():
-    return render_template('privacy.html')    # 模板頁面套用 layout
-    
-@app.route('/privacy')
-def privacy():
-    return app.send_static_file('privacy.html')
+    return render_template('privacy.html')
 
 @app.route('/about')
 def about():
-    return app.send_static_file('about.html')
+    return render_template('about.html')
 
 @app.route('/contact')
 def contact():
-    return app.send_static_file('contact.html')
+    return render_template('contact.html')
 
+@app.route('/terms')
+def terms():
+    return render_template('terms.html')
+    
 if __name__ == '__main__':
     app.run(debug=True)
