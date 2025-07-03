@@ -443,4 +443,3 @@ if __name__ == '__main__':
     # 這可能會導致 Selenium 驅動或自動開啟瀏覽器的線程被啟動兩次。
     # 如果您看到重複的初始化訊息，這是預期行為。
     # 在生產環境中，您會使用 Gunicorn 或 uWSGI 等 WSGI 服務器，它們通常只運行一個進程。
-    app.run(debug=True, host='0.0.0.0', port=5000)
