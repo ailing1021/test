@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3023489511713645"
+     crossorigin="anonymous"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>💰 超級還款試算表 - 完整版</title>
+  <!-- React CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.20.12/babel.min.js"></script>
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html, body, #root {
+      height: 100%;
+      margin: 0; padding: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f3f4f6; /* Tailwind gray-100 */
+    }
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 380px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    textarea {
+      font-family: 'Courier New', Courier, monospace;
+      white-space: pre-wrap;
+    }
+  </style>
+  <meta name="google-site-verification" content="BCvXzgcedvqCehBvT5sfZjBzHe56ld3ft6gNTqERsyE" />
+<!-- Google Analytics GA4 追蹤碼 -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+
+  gtag('js', new Date());
+
+  // Google Consent Mode v2 預設為拒絕，等待使用者選擇
+  gtag('consent', 'default', {
+    ad_storage: 'denied',
+    analytics_storage: 'denied'
+  });
+
+  // 初始化 Google Analytics
+  gtag('config', 'G-WGEGPPKK5D');
+</script>
+</head>
+<body>
+  <meta name="google-site-verification" content="BCvXzgcedvqCehBvT5sfZjBzHe56ld3ft6gNTqERsyE" />
+  <div id="root" class="h-full flex flex-col"></div>
+
+  <script type="text/babel">
+
+    function App() {
+      const getInitialState = () => {
+        try {
+          return {
+            salary: parseFloat(localStorage.getItem('salary')) || 0,
+            livingExpense: parseFloat(localStorage.getItem('livingExpense')) || 0,
+            startMonth: parseInt(localStorage.getItem('startMonth')) || 1,
+            repayList: JSON.parse(localStorage.getItem('repayList')) || [],
+            courseList: JSON.parse(localStorage.getItem('courseList')) || [],
+            calculationResult: '',
+            modalType: null,
+          };
+        } catch (e) {
+          return {
+            salary: 0,
+            livingExpense: 0,
+            startMonth: 1,
+            repayList: [],
+            courseList: [],
+            calculationResult: '',
+            modalType: null,
+          };
+        }
+      };
+
+      const [state, setState] = React.useState(getInitialState);
+
+      React.useEffect(() => {
+        localStorage.setItem('salary', state.salary);
+        localStorage.setItem('livingExpense', state.livingExpense);
+        localStorage.setItem('startMonth', state.startMonth);
+        localStorage.setItem('repayList', JSON.stringify(state.repayList));
+        localStorage.setItem('courseList', JSON.stringify(state.courseList));
+      }, [state.salary, state.livingExpense, state.startMonth, state.repayList, state.courseList]);
+
+      const openModal = (type) => {
+        setState(prev => ({ ...prev, modalType: type }));
+      };
+
+      const closeModal = () => {
+        setState(prev => ({ ...prev, modalType: null }));
+      };
+
+      const addPerson = (name, debt) => {
+        if (!name.trim()) {
+          alert("姓名不能為空");
+          return false;
+        }
+        if (isNaN(debt) || debt <= 0) {
+          alert("欠款金額必須大於0");
+          return false;
+        }
+        const newPerson = {
+          name: name.trim(),
+          debt: parseFloat(debt),
+          remainingDebt: parseFloat(debt),
+        };
+        setState(prev => ({
+          ...prev,
+          repayList: [...prev.repayList, newPerson],
+          modalType: null,
+        }));
+        return true;
+      };
+
+      const addCourse = (fee, months) => {
+        if (isNaN(fee) || fee <= 0) {
+          alert("課程總費用必須大於0");
+          return false;
+        }
+        if (!Number.isInteger(months) || months <= 0) {
+          alert("課程期數必須是大於0的整數");
+          return false;
+        }
+        const newCourse = {
+          fee: parseFloat(fee),
+          months: months,
+          remainingFee: parseFloat(fee),
+        };
+        setState(prev => ({
+          ...prev,
+          courseList: [...prev.courseList, newCourse],
+          modalType: null,
+        }));
+        return true;
+      };
+
+      const setSalary = (salary) => {
+        if (isNaN(salary) || salary < 0) {
+          alert("薪水必須是非負數");
+          return false;
+        }
+        setState(prev => ({
+          ...prev,
+          salary: parseFloat(salary),
+          modalType: null,
+        }));
+        return true;
+      };
+
+      const setLivingExpense = (expense) => {
+        if (isNaN(expense) || expense < 0) {
+          alert("生活費必須是非負數");
+          return false;
+        }
+        setState(prev => ({
+          ...prev,
+          livingExpense: parseFloat(expense),
+          modalType: null,
+        }));
+        return true;
+      };
+
+      const setStartMonth = (month) => {
+        if (!Number.isInteger(month) || month < 1 || month > 12) {
+          alert("起始月份必須介於1到12");
+          return false;
+        }
+        setState(prev => ({
+          ...prev,
+          startMonth: month,
+          modalType: null,
+        }));
+        return true;
+      };
+
+      // 刪除還款人
+      const removePerson = (index) => {
+        if (!confirm(`確定要刪除還款人「${state.repayList[index].name}」嗎？`)) return;
+        const newList = [...state.repayList];
+        newList.splice(index, 1);
+        setState(prev => ({ ...prev, repayList: newList }));
+      };
+
+      // 刪除課程
+      const removeCourse = (index) => {
+        if (!confirm(`確定要刪除課程 #${index + 1} 嗎？`)) return;
+        const newList = [...state.courseList];
+        newList.splice(index, 1);
+        setState(prev => ({ ...prev, courseList: newList }));
+      };
+
+      // 計算還款試算表
+      const calculate = () => {
+        if (state.salary <= 0) {
+          alert('請先設定您的薪水 (必須大於 0)。');
+          openModal('setSalary');
+          return;
+        }
+        if (state.livingExpense < 0) {
+          alert('請設定您的生活費 (必須非負數)。');
+          openModal('setLivingExpense');
+          return;
+        }
+        if (state.repayList.length === 0 && state.courseList.length === 0) {
+          alert('請新增還款人或課程後再進行試算。');
+          return;
+        }
+
+        // 複製資料避免改動原本state
+        const repayList = state.repayList.map(p => ({
+          name: p.name,
+          debt: p.debt,
+          remainingDebt: p.debt,
+        }));
+
+        const courseList = state.courseList.map(c => ({
+          fee: c.fee,
+          months: c.months,
+          remainingFee: c.fee,
+        }));
+
+        const salary = state.salary;
+        const livingExpense = state.livingExpense;
+        let currentMonth = state.startMonth; // 1~12
+        let currentYear = new Date().getFullYear();
+
+        let monthCount = 0;
+        let resultLines = [];
+        resultLines.push(`薪水：${salary.toFixed(2)} 元，生活費：${livingExpense.toFixed(2)} 元，起始月：${currentMonth}\n`);
+        resultLines.push("試算結果如下：\n");
+
+        // 計算每個課程每月應付金額（平均攤還）
+        const courseMonthlyPays = courseList.map(c => c.fee / c.months);
+
+        // 繼續試算直到所有課程和欠款都還清
+        while (
+          repayList.some(p => p.remainingDebt > 0) ||
+          courseList.some(c => c.remainingFee > 0)
+        ) {
+          monthCount++;
+          resultLines.push(`===== 第 ${monthCount} 個月：${currentYear} 年 ${currentMonth} 月 =====`);
+
+          let availableMoney = salary - livingExpense;
+          if (availableMoney <= 0) {
+            resultLines.push(`生活費過高，薪水扣除生活費後無法還款。試算結束。`);
+            break;
+          }
+
+          // 還課程費（每期平均分攤，分月扣款）
+          let coursePayThisMonth = 0;
+          for (let i = 0; i < courseList.length; i++) {
+            const c = courseList[i];
+            if (c.remainingFee > 0) {
+              const pay = Math.min(courseMonthlyPays[i], c.remainingFee, availableMoney);
+              c.remainingFee -= pay;
+              availableMoney -= pay;
+              coursePayThisMonth += pay;
+              resultLines.push(`課程 ${i + 1} 還款 ${pay.toFixed(2)} 元，剩餘 ${c.remainingFee.toFixed(2)} 元`);
+              if (availableMoney <= 0) break;
+            }
+          }
+
+          // 還欠款人（依序還）
+          let repayThisMonth = 0;
+          if (availableMoney > 0) {
+            for (let i = 0; i < repayList.length; i++) {
+              const p = repayList[i];
+              if (p.remainingDebt > 0) {
+                const pay = Math.min(p.remainingDebt, availableMoney);
+                p.remainingDebt -= pay;
+                availableMoney -= pay;
+                repayThisMonth += pay;
+                resultLines.push(`還款人 ${p.name} 還款 ${pay.toFixed(2)} 元，剩餘欠款 ${p.remainingDebt.toFixed(2)} 元`);
+                if (availableMoney <= 0) break;
+              }
+            }
+          }
+
+          if (coursePayThisMonth === 0 && repayThisMonth === 0) {
+            resultLines.push("無法繳納更多款項，試算提前結束。");
+            break;
+          }
+
+          // 更新月份跟年份
+          currentMonth++;
+          if (currentMonth > 12) {
+            currentMonth = 1;
+            currentYear++;
+          }
+        }
+
+        resultLines.push(`\n🎉 全部清償完成，共花費 ${monthCount} 個月。`);
+
+        setState(prev => ({
+          ...prev,
+          calculationResult: resultLines.join('\n'),
+        }));
+      };
+
+      // 匯出CSV（示意）
+      const exportCsv = () => {
+        if (!state.calculationResult) {
+          alert('無試算結果可匯出');
+          return;
+        }
+        alert('此功能暫未實作，待後端支援');
+      };
+
+      // 複製結果文字
+      const copyResult = () => {
+        if (!state.calculationResult) {
+          alert('無試算結果');
+          return;
+        }
+        navigator.clipboard.writeText(state.calculationResult);
+        alert('已複製結果到剪貼簿');
+      };
+
+      // 清空所有資料
+      const clearAll = () => {
+        if (!confirm('確定要清空所有設定和結果嗎？')) return;
+        localStorage.clear();
+        setState({
+          salary: 0,
+          livingExpense: 0,
+          startMonth: 1,
+          repayList: [],
+          courseList: [],
+          calculationResult: '',
+          modalType: null,
+        });
+      };
+
+      // 離開
+      const exitApp = () => {
+        if (confirm('確定離開？')) {
+          window.close();
+          alert('感謝使用！');
+        }
+      };
+
+      // Modal 內部表單元件
+      const ModalContent = () => {
+        if (!state.modalType) return null;
+
+        let input1 = React.useRef(null);
+        let input2 = React.useRef(null);
+
+        const handleSubmit = () => {
+          switch (state.modalType) {
+            case 'addPerson':
+              if (addPerson(input1.current.value, input2.current.value)) closeModal();
+              break;
+            case 'addCourse':
+              if (addCourse(input1.current.value, parseInt(input2.current.value))) closeModal();
+              break;
+            case 'setSalary':
+              if (setSalary(input1.current.value)) closeModal();
+              break;
+            case 'setLivingExpense':
+              if (setLivingExpense(input1.current.value)) closeModal();
+              break;
+            case 'setStartMonth':
+              if (setStartMonth(parseInt(input1.current.value))) closeModal();
+              break;
+            default:
+              closeModal();
+          }
+        };
+
+        let title = '';
+        let label1 = '';
+        let label2 = '';
+        let placeholder1 = '';
+        let placeholder2 = '';
+        let showInput2 = true;
+
+        switch (state.modalType) {
+          case 'addPerson':
+            title = '🎀 新增還款人 🎀';
+            label1 = '姓名';
+            label2 = '欠款金額 (元)';
+            placeholder1 = '例如：小明';
+            placeholder2 = '例如：10000';
+            break;
+          case 'addCourse':
+            title = '🎀 新增課程費用 🎀';
+            label1 = '課程總費用 (元)';
+            label2 = '期數（月）';
+            placeholder1 = '例如：30000';
+            placeholder2 = '例如：6';
+            break;
+          case 'setSalary':
+            title = '💰 設定薪水 💰';
+            label1 = '薪水 (元)';
+            placeholder1 = '例如：34000';
+            showInput2 = false;
+            break;
+          case 'setLivingExpense':
+            title = '🍀 設定生活費 🍀';
+            label1 = '生活費 (元)';
+            placeholder1 = '例如：5000';
+            showInput2 = false;
+            break;
+          case 'setStartMonth':
+            title = '📅 設定起始月份 📅';
+            label1 = '起始月份 (1~12)';
+            placeholder1 = '例如：1';
+            showInput2 = false;
+            break;
+          default:
+            return null;
+        }
+
+        return (
+          <div className="modal" onClick={closeModal}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <h2 className="text-xl font-bold mb-4">{title}</h2>
+              <div className="mb-3">
+                <label className="block mb-1">{label1}:</label>
+                <input
+                  type={state.modalType.includes('Month') ? 'number' : 'text'}
+                  ref={input1}
+                  placeholder={placeholder1}
+                  className="w-full border rounded px-2 py-1"
+                  autoFocus
+                />
+              </div>
+              {showInput2 && (
+                <div className="mb-3">
+                  <label className="block mb-1">{label2}:</label>
+                  <input
+                    type="number"
+                    ref={input2}
+                    placeholder={placeholder2}
+                    className="w-full border rounded px-2 py-1"
+                  />
+                </div>
+              )}
+              <div className="flex justify-end space-x-2">
+                <button
+                  className="bg-gray-300 hover:bg-gray-400 px-3 py-1 rounded"
+                  onClick={closeModal}
+                >
+                  取消
+                </button>
+                <button
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded"
+                  onClick={handleSubmit}
+                >
+                  確定
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      };
+
+      return (
+        <div className="flex flex-col h-full p-4 max-w-3xl mx-auto">
+          <h1 className="text-3xl font-bold mb-4 text-center">💰 超級還款試算表</h1>
+
+          {/* 按鈕區 */}
+          <div className="flex flex-wrap gap-3 mb-6 justify-center">
+            <button
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              onClick={() => openModal('setSalary')}
+              title="設定薪水"
+            >
+              薪水：{state.salary.toFixed(0)}
+            </button>
+
+            <button
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              onClick={() => openModal('setLivingExpense')}
+              title="設定生活費"
+            >
+              生活費：{state.livingExpense.toFixed(0)}
+            </button>
+
+            <button
+              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+              onClick={() => openModal('setStartMonth')}
+              title="設定起始月份"
+            >
+              起始月：{state.startMonth}
+            </button>
+
+            <button
+              className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+              onClick={() => openModal('addPerson')}
+              title="新增還款人"
+            >
+              新增還款人
+            </button>
+
+            <button
+              className="bg-pink-600 text-white px-4 py-2 rounded hover:bg-pink-700"
+              onClick={() => openModal('addCourse')}
+              title="新增課程費用"
+            >
+              新增課程費用
+            </button>
+
+            <button
+              className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700"
+              onClick={calculate}
+              title="開始計算"
+            >
+              計算試算
+            </button>
+
+            <button
+              className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+              onClick={copyResult}
+              title="複製試算結果"
+            >
+              複製結果
+            </button>
+
+            <button
+              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+              onClick={clearAll}
+              title="清空所有資料"
+            >
+              清空資料
+            </button>
+
+            <button
+              className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800"
+              onClick={exitApp}
+              title="離開網頁"
+            >
+              離開
+            </button>
+          </div>
+
+          {/* 還款人列表 */}
+          <div className="mb-6 bg-white rounded shadow p-4 overflow-auto max-h-48">
+            <h2 className="text-xl font-semibold mb-3">還款人列表</h2>
+            {state.repayList.length === 0 ? (
+              <p className="text-gray-500">尚無還款人，請新增。</p>
+            ) : (
+              <table className="w-full text-sm text-left">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="p-2">姓名</th>
+                    <th className="p-2">欠款金額 (元)</th>
+                    <th className="p-2">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {state.repayList.map((p, i) => (
+                    <tr key={i} className="border-b">
+                      <td className="p-2">{p.name}</td>
+                      <td className="p-2">{p.debt.toFixed(2)}</td>
+                      <td className="p-2">
+                        <button
+                          className="text-red-600 hover:text-red-800"
+                          onClick={() => removePerson(i)}
+                        >
+                          刪除
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* 課程費用列表 */}
+          <div className="mb-6 bg-white rounded shadow p-4 overflow-auto max-h-48">
+            <h2 className="text-xl font-semibold mb-3">課程費用列表</h2>
+            {state.courseList.length === 0 ? (
+              <p className="text-gray-500">尚無課程費用，請新增。</p>
+            ) : (
+              <table className="w-full text-sm text-left">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="p-2">總費用 (元)</th>
+                    <th className="p-2">期數 (月)</th>
+                    <th className="p-2">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {state.courseList.map((c, i) => (
+                    <tr key={i} className="border-b">
+                      <td className="p-2">{c.fee.toFixed(2)}</td>
+                      <td className="p-2">{c.months}</td>
+                      <td className="p-2">
+                        <button
+                          className="text-red-600 hover:text-red-800"
+                          onClick={() => removeCourse(i)}
+                        >
+                          刪除
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* 試算結果區 */}
+          <div className="flex-grow bg-white rounded shadow p-4 overflow-auto">
+            <h2 className="text-xl font-semibold mb-3">試算結果</h2>
+            <textarea
+              readOnly
+              className="w-full h-64 resize-none border rounded p-2 font-mono"
+              value={state.calculationResult}
+              placeholder="試算結果會顯示於此..."
+            />
+          </div>
+
+          {/* Modal */}
+          <ModalContent />
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</div>
+<!-- ✅ 正規 Cookie 同意橫幅 -->
+<div id="cookie-banner" style="
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #f8f8f8;
+  padding: 16px;
+  box-shadow: 0 -2px 6px rgba(0,0,0,0.15);
+  font-family: sans-serif;
+  font-size: 14px;
+  color: #333;
+  z-index: 9999;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+">
+  <span style="flex: 1; min-width: 200px; text-align: center;">
+    我們使用 Cookie 改善網站功能與分析流量。請選擇是否接受。
+  </span>
+  <div>
+    <button onclick="acceptCookies()" style="background: #007bff; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer;">
+      接受全部
+    </button>
+    <button onclick="declineCookies()" style="background: #ccc; color: #000; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; margin-left: 8px;">
+      僅使用必要
+    </button>
+  </div>
+</div>
+
+<script>
+  function acceptCookies() {
+    localStorage.setItem('cookieConsent', 'accepted');
+    if (typeof gtag === 'function') {
+      gtag('consent', 'update', {
+        ad_storage: 'granted',
+        analytics_storage: 'granted'
+      });
+    }
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+
+  function declineCookies() {
+    localStorage.setItem('cookieConsent', 'declined');
+    if (typeof gtag === 'function') {
+      gtag('consent', 'update', {
+        ad_storage: 'denied',
+        analytics_storage: 'denied'
+      });
+    }
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+
+  // 判斷是否已做出選擇
+  if (localStorage.getItem('cookieConsent')) {
+    document.getElementById('cookie-banner').style.display = 'none';
+  }
+</script>
+</body>
+</html>
