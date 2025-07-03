@@ -1,5 +1,4 @@
 import requests  # 確保最上面有匯入
-import webbrowser
 import threading
 import time
 import os
