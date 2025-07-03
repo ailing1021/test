@@ -1,7 +1,11 @@
 from flask import Flask, request, jsonify, send_file
-from flask import Flask, render_template
+from flask import render_template # 這裡重複了 Flask 導入，可以移除一個
 import csv
 import io
+# import os # 移除這行，因為不再需要 os.environ.get("PORT") 了，Gunicorn 會處理
+
+# 修正重複的 Flask 導入
+# from flask import Flask, request, jsonify, send_file, render_template
 
 app = Flask(__name__, template_folder='template')
 
@@ -212,7 +216,7 @@ def export_csv():
 
 @app.route('/')
 def index():
-    return render_template('index.html')  # 會套用 layout.html
+    return render_template('index.html')  # 會套用 layout.html
 
 @app.route('/privacy')
 def privacy():
@@ -229,9 +233,9 @@ def contact():
 @app.route('/terms')
 def terms():
     return render_template('terms.html')
-    
-import os
 
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+# 移除這段程式碼，因為它只用於本地開發環境，不適用於 Render 上使用 Gunicorn 部署
+# import os
+# if __name__ == '__main__':
+#     port = int(os.environ.get("PORT", 5000))
+#     app.run(host="0.0.0.0", port=port)
