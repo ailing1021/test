@@ -22,8 +22,8 @@ CORS(app) # 啟用 CORS，允許所有來源的跨域請求，方便開發
 state = {
     "salary": 0.0,
     "living_expense": 0.0,
-    "start_month": 1,  # 1-12
-    "repay_list": [],  # [{"name": "小明", "debt": 10000.0}]
+    "start_month": 1,   # 1-12
+    "repay_list": [],   # [{"name": "小明", "debt": 10000.0}]
     "course_list": [], # [{"fee": 30000.0, "months": 6}]
     "month_records": [], # 計算結果的詳細記錄，用於 CSV 匯出
     "calculation_summary": "" # 計算結果的文字摘要
@@ -275,54 +275,54 @@ def calculate_repayment():
     
     result_text += "還款人還清時間：\n"
     if not repayment_completion_dates and repay_list:
-        result_text += "  - 所有還款人債務已在計算開始前還清，或無需償還。\n"
+        result_text += "   - 所有還款人債務已在計算開始前還清，或無需償還。\n"
     elif not repay_list:
-        result_text += "  - 無還款人。\n"
+        result_text += "   - 無還款人。\n"
     else:
         for name, date_str in repayment_completion_dates.items():
-            result_text += f"  - {name}: {date_str} 還清\n"
+            result_text += f"   - {name}: {date_str} 還清\n"
     result_text += "\n"
 
     result_text += "課程繳清時間：\n"
     if not course_completion_dates and course_list:
-        result_text += "  - 所有課程費用已在計算開始前繳清，或無需繳納。\n"
+        result_text += "   - 所有課程費用已在計算開始前繳清，或無需繳納。\n"
     elif not course_list:
-        result_text += "  - 無課程費用。\n"
+        result_text += "   - 無課程費用。\n"
     else:
         for name, date_str in course_completion_dates.items():
-            result_text += f"  - {name}: {date_str} 繳清\n"
+            result_text += f"   - {name}: {date_str} 繳清\n"
     result_text += "\n"
 
     result_text += "每月詳細還款計畫：\n"
     for record in month_records:
         result_text += f"月份: {record['date']} (第 {record['month_num']} 月)\n"
-        result_text += f"  可支配收入: {record['disposable_income']:.2f} 元\n"
+        result_text += f"   可支配收入: {record['disposable_income']:.2f} 元\n"
         
         if record["course_payments_detail"]:
-            result_text += "  課程繳納:\n"
+            result_text += "   課程繳納:\n"
             for course_name, amount in record["course_payments_detail"].items():
-                result_text += f"    - {course_name}: {amount:.2f} 元\n"
+                result_text += f"     - {course_name}: {amount:.2f} 元\n"
         
         if record["repayments_detail"]:
-            result_text += "  還款人分配:\n"
+            result_text += "   還款人分配:\n"
             for name, amount in record["repayments_detail"].items():
-                result_text += f"    - {name}: {amount:.2f} 元\n"
+                result_text += f"     - {name}: {amount:.2f} 元\n"
         
-        result_text += f"  當月總計還款/繳費: {record['total_repaid_this_month']:.2f} 元\n"
-        result_text += f"  當月剩餘可支配收入: {record['remaining_income']:.2f} 元\n"
+        result_text += f"   當月總計還款/繳費: {record['total_repaid_this_month']:.2f} 元\n"
+        result_text += f"   當月剩餘可支配收入: {record['remaining_income']:.2f} 元\n"
         
         # 顯示當月結束後的剩餘債務和課程費用
         if any(v > 0.001 for v in record['remaining_person_debts'].values()):
-            result_text += "  還款人剩餘債務:\n"
+            result_text += "   還款人剩餘債務:\n"
             for name, debt in record['remaining_person_debts'].items():
                 if debt > 0.001:
-                    result_text += f"    - {name}: {debt:.2f} 元\n"
+                    result_text += f"     - {name}: {debt:.2f} 元\n"
         
         if any(v > 0.001 for v in record['remaining_course_fees'].values()):
-            result_text += "  課程剩餘費用:\n"
+            result_text += "   課程剩餘費用:\n"
             for name, fee in record['remaining_course_fees'].items():
                 if fee > 0.001:
-                    result_text += f"    - {name}: {fee:.2f} 元\n"
+                    result_text += f"     - {name}: {fee:.2f} 元\n"
         result_text += "--------------------------------------\n"
 
     state["month_records"] = month_records # 儲存詳細記錄
@@ -408,7 +408,7 @@ def visit_webpage_headless_periodically(interval_minutes):
     # 目標 URL，這裡使用您圖片中的 Render URL
     URL_TO_VISIT = "https://test-10-2h45.onrender.com" 
     
-    print(f"\n[後台訪問] 已啟動背景任務：每 {interval_minutes} 分鐘無頭訪問一次 {URL_TO_VISIT}")
+    print(f"\n[後台訪問] 已啟動背景任務：每 {interval_minutes} 分鐘無頭訪問一次 {URL_TO_VISIT}") # 修正變數名
 
     # 配置 Chrome 選項，啟用無頭模式
     chrome_options = ChromeOptions()
@@ -465,7 +465,7 @@ if __name__ == '__main__':
 
     # 自動開啟瀏覽器的函式 (保留原有功能，在伺服器啟動時開啟一次可見的瀏覽器)
     def open_browser_on_startup():
-        time.sleep(1)  # 稍微延遲，確保 server 有啟動再開瀏覽器
+        time.sleep(1)   # 稍微延遲，確保 server 有啟動再開瀏覽器
         try:
             # 這裡開啟的是本地 Flask 應用程式
             webbrowser.open("http://127.0.0.1:5000/")
