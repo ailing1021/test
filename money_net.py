@@ -1,29 +1,366 @@
 from flask import Flask, request, jsonify, send_file
-from flask import render_template # 這裡重複了 Flask 導入，可以移除一個
-import csv
+from flask_cors import CORS
+import pandas as pd
 import io
-# import os # 移除這行，因為不再需要 os.environ.get("PORT") 了，Gunicorn 會處理
+import os
+from datetime import datetime, timedelta
 
-# 修正重複的 Flask 導入
-# from flask import Flask, request, jsonify, send_file, render_template
+app = Flask(__name__)
+CORS(app) # 啟用 CORS，允許所有來源的跨域請求，開發時方便
 
-app = Flask(__name__, template_folder='template')
-
-# 初始預設值
+# 全局狀態，用於模擬數據庫。在生產環境應替換為實際數據庫。
 state = {
     "salary": 0.0,
     "living_expense": 0.0,
-    "start_month": 1,
-    "repay_list": [],
-    "course_list": [],
-    "month_records": [],
-    "names": []
+    "start_month": 1,  # 1-12
+    "repay_list": [],  # [{"name": "小明", "debt": 10000.0}]
+    "course_list": [], # [{"fee": 30000.0, "months": 6}]
+    "month_records": [], # 計算結果的詳細記錄，用於 CSV 匯出
+    "calculation_summary": "" # 計算結果的文字摘要
 }
 
+# 根路由，提供前端文件
+@app.route('/')
+def index():
+    return send_file('index.html')
+
+# API 路由區塊
+
+@app.route('/api/get_current_state', methods=['GET'])
+def get_current_state():
+    """提供當前所有儲存的狀態數據給前端"""
+    return jsonify({
+        "status": "success",
+        "salary": state["salary"],
+        "living_expense": state["living_expense"],
+        "start_month": state["start_month"],
+        "repay_list": state["repay_list"],
+        "course_list": state["course_list"],
+        # calculation_summary 不會在每次獲取狀態時返回，因為它是 calculate 的結果
+        # month_records 也不會返回，因為它可能很大，只在 export_csv 時用到
+    })
+
+@app.route('/api/add_person', methods=['POST'])
+def add_person():
+    data = request.get_json()
+    name = data.get('name')
+    debt = data.get('debt')
+
+    if not name or not isinstance(name, str) or not name.strip():
+        return jsonify({"status": "error", "message": "姓名不能為空"}), 400
+    try:
+        debt = float(debt)
+        if debt <= 0:
+            return jsonify({"status": "error", "message": "欠款金額必須大於0"}), 400
+    except (TypeError, ValueError):
+        return jsonify({"status": "error", "message": "欠款金額必須是有效數字"}), 400
+
+    state["repay_list"].append({"name": name.strip(), "debt": debt})
+    return jsonify({"status": "success", "message": "還款人新增成功", "repay_list": state["repay_list"]})
+
+@app.route('/api/add_course', methods=['POST'])
+def add_course():
+    data = request.get_json()
+    fee = data.get('fee')
+    months = data.get('months')
+
+    try:
+        fee = float(fee)
+        if fee <= 0:
+            return jsonify({"status": "error", "message": "課程總費用必須大於0"}), 400
+    except (TypeError, ValueError):
+        return jsonify({"status": "error", "message": "課程總費用必須是有效數字"}), 400
+    
+    try:
+        months = int(months)
+        if not (isinstance(months, int) and months > 0):
+            return jsonify({"status": "error", "message": "課程期數必須是大於0的整數"}), 400
+    except (TypeError, ValueError):
+        return jsonify({"status": "error", "message": "課程期數必須是大於0的整數"}), 400
+
+    state["course_list"].append({"fee": fee, "months": months})
+    return jsonify({"status": "success", "message": "課程新增成功", "course_list": state["course_list"]})
+
+@app.route('/api/set_salary', methods=['POST'])
+def set_salary():
+    data = request.get_json()
+    salary = data.get('salary')
+    try:
+        salary = float(salary)
+        if salary < 0:
+            return jsonify({"status": "error", "message": "薪水必須是非負數"}), 400
+    except (TypeError, ValueError):
+        return jsonify({"status": "error", "message": "薪水必須是有效數字"}), 400
+    
+    state["salary"] = salary
+    return jsonify({"status": "success", "message": "薪水設定成功", "salary": state["salary"]})
+
+@app.route('/api/set_living_expense', methods=['POST'])
+def set_living_expense():
+    data = request.get_json()
+    expense = data.get('expense')
+    try:
+        expense = float(expense)
+        if expense < 0:
+            return jsonify({"status": "error", "message": "生活費必須是非負數"}), 400
+    except (TypeError, ValueError):
+        return jsonify({"status": "error", "message": "生活費必須是有效數字"}), 400
+
+    state["living_expense"] = expense
+    return jsonify({"status": "success", "message": "生活費設定成功", "living_expense": state["living_expense"]})
+
+@app.route('/api/set_start_month', methods=['POST'])
+def set_start_month():
+    data = request.get_json()
+    start_month = data.get('start_month')
+    try:
+        start_month = int(start_month)
+        if not (1 <= start_month <= 12):
+            return jsonify({"status": "error", "message": "起始月份必須介於1到12"}), 400
+    except (TypeError, ValueError):
+        return jsonify({"status": "error", "message": "起始月份必須是有效數字"}), 400
+
+    state["start_month"] = start_month
+    return jsonify({"status": "success", "message": "起始月份設定成功", "start_month": state["start_month"]})
+
+
+@app.route('/api/calculate', methods=['POST'])
+def calculate_repayment():
+    """執行還款試算並更新全局狀態"""
+    salary = state["salary"]
+    living_expense = state["living_expense"]
+    repay_list = state["repay_list"]
+    course_list = state["course_list"]
+    start_month_num = state["start_month"]
+
+    if not repay_list and not course_list:
+        return jsonify({"status": "error", "message": "請至少新增一位還款人或一筆課程費用以進行計算"}), 400
+    
+    if salary <= living_expense:
+        return jsonify({"status": "error", "message": f"薪水 {salary} 元必須大於生活費 {living_expense} 元才能有餘額還款。"}), 400
+
+    disposable_income = salary - living_expense
+
+    total_debt = sum(item["debt"] for item in repay_list)
+    total_course_fee = sum(item["fee"] for item in course_list)
+
+    # 初始化每月還款數據
+    monthly_repayments = {item["name"]: 0.0 for item in repay_list}
+    monthly_course_payments = []
+    
+    # 計算課程每期還款金額
+    for i, course in enumerate(course_list):
+        # 假設課程從第一個月開始還款
+        monthly_course_payments.append({
+            "name": f"課程{i+1}",
+            "monthly_amount": course["fee"] / course["months"],
+            "remaining_months": course["months"]
+        })
+
+    # 月度記錄
+    month_records = []
+    current_month_index = 0 # 從第0個月開始計數，方便計算日期
+    current_debt_remaining = total_debt
+    current_course_remaining_fees = [c["fee"] for c in course_list]
+
+    # 還款人債務的可變副本
+    current_person_debts = {person["name"]: person["debt"] for person in repay_list}
+
+    # 紀錄每個還款人何時還清
+    repayment_completion_dates = {}
+    
+    # 紀錄每個課程何時繳清
+    course_completion_dates = {}
+
+    while current_debt_remaining > 0.001 or any(f > 0.001 for f in current_course_remaining_fees):
+        current_date = datetime(2025, start_month_num, 1) + timedelta(days=30 * current_month_index) # 僅供顯示
+        display_month = (start_month_num + current_month_index - 1) % 12 + 1
+        display_year = current_date.year # 獲取正確年份
+
+        month_record = {
+            "month_num": current_month_index + 1,
+            "date": f"{display_year}/{display_month:02d}",
+            "disposable_income": disposable_income,
+            "total_repaid_this_month": 0.0,
+            "remaining_income": disposable_income,
+            "repayments_detail": {},
+            "course_payments_detail": {},
+            "remaining_person_debts": {},
+            "remaining_course_fees": {}
+        }
+
+        # 先處理課程繳費
+        course_payment_this_month = 0.0
+        for i, course_item in enumerate(monthly_course_payments):
+            if current_course_remaining_fees[i] > 0.001: # 該課程還有餘額
+                payment_due = course_item["monthly_amount"]
+                actual_payment = min(payment_due, current_course_remaining_fees[i], month_record["remaining_income"])
+                
+                if actual_payment > 0:
+                    month_record["course_payments_detail"][course_item["name"]] = actual_payment
+                    current_course_remaining_fees[i] -= actual_payment
+                    month_record["remaining_income"] -= actual_payment
+                    course_payment_this_month += actual_payment
+
+                    if current_course_remaining_fees[i] <= 0.001 and course_item["name"] not in course_completion_dates:
+                        course_completion_dates[course_item["name"]] = f"{display_year}/{display_month:02d}"
+            month_record["remaining_course_fees"][course_item["name"]] = max(0, current_course_remaining_fees[i])
+
+
+        # 然後處理還款人還款 (如果有餘額)
+        remaining_to_distribute = month_record["remaining_income"]
+        if remaining_to_distribute > 0.001 and current_debt_remaining > 0.001:
+            # 計算未還清的還款人總債務
+            active_repay_list = [p for p in repay_list if current_person_debts[p["name"]] > 0.001]
+            if not active_repay_list:
+                break # 所有還款人都還清了
+
+            total_active_debt = sum(current_person_debts[p["name"]] for p in active_repay_list)
+
+            # 按照比例分配剩餘可支配收入
+            for person in active_repay_list:
+                name = person["name"]
+                if current_person_debts[name] > 0.001:
+                    proportion = current_person_debts[name] / total_active_debt
+                    payment = min(remaining_to_distribute * proportion, current_person_debts[name])
+                    
+                    if payment > 0:
+                        month_record["repayments_detail"][name] = payment
+                        current_person_debts[name] -= payment
+                        current_debt_remaining -= payment
+                        month_record["remaining_income"] -= payment # 更新剩餘可支配收入
+
+                        if current_person_debts[name] <= 0.001 and name not in repayment_completion_dates:
+                            repayment_completion_dates[name] = f"{display_year}/{display_month:02d}"
+
+        month_record["total_repaid_this_month"] = disposable_income - month_record["remaining_income"]
+
+        # 記錄每個人當月剩餘債務
+        for person in repay_list:
+            month_record["remaining_person_debts"][person["name"]] = max(0, current_person_debts[person["name"]])
+
+        month_records.append(month_record)
+        current_month_index += 1
+
+        if current_month_index > 2000: # 設定一個上限，避免無限循環
+            return jsonify({"status": "error", "message": "計算時間過長，可能存在無限循環或數據量過大。"}), 500
+
+    # 生成摘要結果
+    result_text = "還款試算結果：\n\n"
+    
+    result_text += f"總月數：{current_month_index} 個月\n\n"
+    
+    result_text += "還款人還清時間：\n"
+    if not repayment_completion_dates:
+        result_text += "  - 尚無還款人債務需要償還或已償清。\n"
+    else:
+        for name, date_str in repayment_completion_dates.items():
+            result_text += f"  - {name}: {date_str} 還清\n"
+    result_text += "\n"
+
+    result_text += "課程繳清時間：\n"
+    if not course_completion_dates:
+        result_text += "  - 尚無課程費用需要繳納或已繳清。\n"
+    else:
+        for name, date_str in course_completion_dates.items():
+            result_text += f"  - {name}: {date_str} 繳清\n"
+    result_text += "\n"
+
+    result_text += "每月詳細還款計畫：\n"
+    for record in month_records:
+        result_text += f"月份: {record['date']} (第 {record['month_num']} 月)\n"
+        result_text += f"  可支配收入: {record['disposable_income']:.2f} 元\n"
+        
+        if record["course_payments_detail"]:
+            result_text += "  課程繳納:\n"
+            for course_name, amount in record["course_payments_detail"].items():
+                result_text += f"    - {course_name}: {amount:.2f} 元\n"
+        
+        if record["repayments_detail"]:
+            result_text += "  還款人分配:\n"
+            for name, amount in record["repayments_detail"].items():
+                result_text += f"    - {name}: {amount:.2f} 元\n"
+        
+        result_text += f"  當月總計還款/繳費: {record['total_repaid_this_month']:.2f} 元\n"
+        result_text += f"  當月剩餘可支配收入: {record['remaining_income']:.2f} 元\n"
+        
+        # 顯示當月結束後的剩餘債務和課程費用
+        if any(v > 0.001 for v in record['remaining_person_debts'].values()):
+            result_text += "  還款人剩餘債務:\n"
+            for name, debt in record['remaining_person_debts'].items():
+                if debt > 0.001:
+                    result_text += f"    - {name}: {debt:.2f} 元\n"
+        
+        if any(v > 0.001 for v in record['remaining_course_fees'].values()):
+            result_text += "  課程剩餘費用:\n"
+            for name, fee in record['remaining_course_fees'].items():
+                if fee > 0.001:
+                    result_text += f"    - {name}: {fee:.2f} 元\n"
+        result_text += "--------------------------------------\n"
+
+    state["month_records"] = month_records # 儲存詳細記錄
+    state["calculation_summary"] = result_text # 儲存摘要
+
+    return jsonify({"status": "success", "message": "計算完成", "result": result_text})
+
+@app.route('/api/export_csv', methods=['GET'])
+def export_csv():
+    """匯出計算結果為 CSV 檔案"""
+    if not state["month_records"]:
+        return jsonify({"status": "error", "message": "請先執行計算才能匯出 CSV"}), 400
+
+    # 準備 DataFrame 的數據
+    csv_data = []
+    
+    # 獲取所有還款人和課程名稱作為列名
+    all_names = sorted(list(set(p["name"] for p in state["repay_list"])))
+    all_course_names = sorted([f"課程{i+1}" for i in range(len(state["course_list"]))])
+
+    for record in state["month_records"]:
+        row = {
+            "月份": record["date"],
+            "可支配收入": record["disposable_income"],
+            "當月總計還款_繳費": record["total_repaid_this_month"],
+            "當月剩餘可支配收入": record["remaining_income"],
+        }
+        
+        # 還款人當月還款
+        for name in all_names:
+            row[f"{name}_當月還款"] = record["repayments_detail"].get(name, 0.0)
+
+        # 課程當月繳費
+        for course_name in all_course_names:
+            row[f"{course_name}_當月繳費"] = record["course_payments_detail"].get(course_name, 0.0)
+
+        # 還款人剩餘債務
+        for name in all_names:
+            row[f"{name}_剩餘債務"] = record["remaining_person_debts"].get(name, 0.0)
+
+        # 課程剩餘費用
+        for course_name in all_course_names:
+            row[f"{course_name}_剩餘費用"] = record["remaining_course_fees"].get(course_name, 0.0)
+            
+        csv_data.append(row)
+
+    df = pd.DataFrame(csv_data)
+
+    # 將 DataFrame 寫入 CSV 格式的 StringIO 物件
+    output = io.StringIO()
+    df.to_csv(output, index=False, encoding='utf-8-sig') # utf-8-sig 處理中文亂碼
+    output.seek(0)
+
+    # 返回 CSV 文件
+    return send_file(
+        io.BytesIO(output.getvalue().encode('utf-8-sig')), # 再次編碼以確保正確傳輸
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name='repayment_plan.csv'
+    )
 
 @app.route('/api/reset', methods=['POST'])
-def reset():
-    global state
+def reset_data():
+    """清空所有數據"""
+    global state # 聲明使用全局變數
     state = {
         "salary": 0.0,
         "living_expense": 0.0,
@@ -31,211 +368,17 @@ def reset():
         "repay_list": [],
         "course_list": [],
         "month_records": [],
-        "names": []
+        "calculation_summary": ""
     }
-    return jsonify({"status": "success", "message": "所有資料已重置"})
+    return jsonify({"status": "success", "message": "所有資料已清空！"})
 
-
-@app.route('/api/add_person', methods=['POST'])
-def add_person():
-    data = request.json
-    name = data.get('name', '').strip()
-    debt = data.get('debt', '')
-    try:
-        debt = float(debt)
-        if debt <= 0:
-            return jsonify({"status": "error", "message": "欠款金額請輸入大於0的數字！"})
-    except:
-        return jsonify({"status": "error", "message": "欠款金額請輸入大於0的數字！"})
-    if not name:
-        return jsonify({"status": "error", "message": "請輸入姓名！"})
-    state['repay_list'].append({"name": name, "debt": debt})
-    return jsonify({"status": "success", "repay_list": state['repay_list']})
-
-
-@app.route('/api/add_course', methods=['POST'])
-def add_course():
-    data = request.json
-    fee = data.get('fee', '')
-    months = data.get('months', '')
-    try:
-        fee = float(fee)
-        months = int(months)
-        if fee < 0 or months <= 0:
-            return jsonify({"status": "error", "message": "請輸入正確的費用及期數！"})
-    except:
-        return jsonify({"status": "error", "message": "請輸入正確的費用及期數！"})
-    state['course_list'].append({"fee": fee, "months": months})
-    return jsonify({"status": "success", "course_list": state['course_list']})
-
-
-@app.route('/api/set_salary', methods=['POST'])
-def set_salary():
-    data = request.json
-    try:
-        salary = float(data.get('salary', ''))
-        if salary <= 0:
-            return jsonify({"status": "error", "message": "請輸入大於0的數字！"})
-        state['salary'] = salary
-        return jsonify({"status": "success", "salary": salary})
-    except:
-        return jsonify({"status": "error", "message": "請輸入大於0的數字！"})
-
-
-@app.route('/api/set_living_expense', methods=['POST'])
-def set_living_expense():
-    data = request.json
-    try:
-        expense = float(data.get('expense', ''))
-        if expense < 0:
-            return jsonify({"status": "error", "message": "請輸入正確數字！"})
-        state['living_expense'] = expense
-        return jsonify({"status": "success", "living_expense": expense})
-    except:
-        return jsonify({"status": "error", "message": "請輸入正確數字！"})
-
-
-@app.route('/api/set_start_month', methods=['POST'])
-def set_start_month():
-    data = request.json
-    try:
-        start_month = int(data.get('start_month', ''))
-        if start_month < 1:
-            return jsonify({"status": "error", "message": "請輸入大於等於1的整數！"})
-        state['start_month'] = start_month
-        return jsonify({"status": "success", "start_month": start_month})
-    except:
-        return jsonify({"status": "error", "message": "請輸入大於等於1的整數！"})
-
-
-@app.route('/api/calculate', methods=['POST'])
-def calculate():
-    if state['salary'] <= 0:
-        return jsonify({"status": "error", "message": "請先設定薪水（薪水需大於0）！"})
-    if state['salary'] < state['living_expense']:
-        return jsonify({"status": "error",
-                        "message": f"薪水 ({state['salary']:.2f}) 需大於生活費 ({state['living_expense']:.2f})，否則無法還款！"})
-    if not state['repay_list'] and not state['course_list']:
-        return jsonify({"status": "error", "message": "請先新增還款人或課程！"})
-
-    total_debt = sum(p['debt'] for p in state['repay_list'])
-    total_course_fee = sum(c['fee'] for c in state['course_list'])
-    monthly_course_fee_total = sum(c['fee'] / c['months'] if c['months'] > 0 else 0 for c in state['course_list'])
-    max_course_months = max((c['months'] for c in state['course_list']), default=0)
-
-    remain_debts = [p['debt'] for p in state['repay_list']]
-    pay_off_month = [None] * len(state['repay_list'])
-    month_records = []
-    months = 0
-    MAX_MONTHS = 1200
-
-    result = f"每月薪水: {state['salary']:.2f} 元\n"
-    result += f"每月生活費: {state['living_expense']:.2f} 元\n"
-    result += f"總還款金額: {total_debt:.2f} 元\n"
-    result += f"總課程費用: {total_course_fee:.2f} 元\n"
-    result += f"每月課程費用總計: {monthly_course_fee_total:.2f} 元\n"
-    result += f"最長課程期數: {max_course_months} 月\n"
-    result += f"還款起始月: 第 {state['start_month']} 個月\n"
-    result += "-" * 50 + "\n"
-
-    while (any(d > 0 for d in remain_debts) or months < max_course_months) and months < MAX_MONTHS:
-        months += 1
-        current_monthly_course_fee = sum(c['fee'] / c['months'] for c in state['course_list'] if months <= c['months'])
-        available_amount = state['salary'] - state['living_expense'] - current_monthly_course_fee
-        if available_amount < 0:
-            return jsonify({"status": "error", "message": f"第 {months} 月後，生活費與課程費用已超過薪水，試算停止。"})
-
-        pays = [0] * len(remain_debts)
-        if months >= state['start_month']:
-            debtors_left = sum(1 for d in remain_debts if d > 0)
-            if debtors_left == 0 and months >= max_course_months:
-                break
-            if debtors_left > 0:
-                per_person = available_amount // debtors_left
-                total_paid = 0
-                for i in range(len(remain_debts)):
-                    if remain_debts[i] > 0:
-                        pay = min(per_person, remain_debts[i])
-                        remain_debts[i] -= pay
-                        pays[i] = pay
-                        total_paid += pay
-                        if remain_debts[i] <= 0 and pay_off_month[i] is None:
-                            pay_off_month[i] = months
-                leftover = available_amount - total_paid
-                for i in range(len(remain_debts)):
-                    if remain_debts[i] > 0 and leftover > 0:
-                        extra = min(remain_debts[i], leftover)
-                        remain_debts[i] -= extra
-                        pays[i] += extra
-                        leftover -= extra
-                        if remain_debts[i] <= 0 and pay_off_month[i] is None:
-                            pay_off_month[i] = months
-        month_records.append((pays, available_amount))
-
-    if months == MAX_MONTHS:
-        return jsonify({"status": "error", "message": "試算已達最大月數，可能無法完全還清。"})
-
-    result += f"共試算 {months} 個月完成所有還款與課程繳費。\n\n"
-    col_w = 10
-    names = [p['name'] for p in state['repay_list']]
-    header = f"{'月份':>{col_w}}{'可用資金':>{col_w}}" + "".join(f"{n:>{col_w}}" for n in names)
-    result += header + "\n"
-    result += "-" * (col_w * (len(names) + 2)) + "\n"
-    for m, (record, avail) in enumerate(month_records, 1):
-        row = f"{m:>{col_w}}{avail:>{col_w}.2f}" + "".join(f"{int(v):>{col_w}}" for v in record)
-        result += row + "\n"
-    result += "\n還清月份：\n"
-    for i, n in enumerate(names):
-        result += f"{n} → 第 {pay_off_month[i] if pay_off_month[i] else '尚未還清'} 個月還清\n"
-
-    state['month_records'] = month_records
-    state['names'] = names
-    return jsonify({"status": "success", "result": result})
-
-
-@app.route('/api/export_csv', methods=['GET'])
-def export_csv():
-    if not state['month_records'] or not state['names']:
-        return jsonify({"status": "error", "message": "無試算結果可匯出，請先執行試算"})
-
-    output = io.StringIO()
-    writer = csv.writer(output)
-    header = ["月份", "可用資金"] + state['names']
-    writer.writerow(header)
-    for m, (record, avail) in enumerate(state['month_records'], 1):
-        writer.writerow([m, f"{avail:.2f}"] + [int(x) for x in record])
-
-    output.seek(0)
-    return send_file(
-        io.BytesIO(output.getvalue().encode('utf-8-sig')),
-        mimetype='text/csv',
-        as_attachment=True,
-        download_name='repay_result.csv'
-    )
-
-
-@app.route('/')
-def index():
-    return render_template('index.html')  # 會套用 layout.html
-
-@app.route('/privacy')
-def privacy():
-    return render_template('privacy.html')
-
-@app.route('/about')
-def about():
-    return render_template('about.html')
-
-@app.route('/contact')
-def contact():
-    return render_template('contact.html')
-
-@app.route('/terms')
-def terms():
-    return render_template('terms.html')
-
-# 移除這段程式碼，因為它只用於本地開發環境，不適用於 Render 上使用 Gunicorn 部署
-# import os
-# if __name__ == '__main__':
-#     port = int(os.environ.get("PORT", 5000))
-#     app.run(host="0.0.0.0", port=port)
+# 運行 Flask 應用
+if __name__ == '__main__':
+    # 檢查 index.html 是否存在
+    if not os.path.exists('index.html'):
+        print("錯誤：index.html 檔案未找到。請確保 index.html 位於與 money_net.py 相同的資料夾中。")
+        print("程式將退出。")
+        exit()
+        
+    # 在生產環境中，您可能需要更健壯的伺服器，例如 Gunicorn
+    app.run(debug=True, host='0.0.0.0', port=5000) # 開啟 debug 模式方便開發
