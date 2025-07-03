@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, send_file
 import csv
 import io
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='template')
 
 # 初始預設值
 state = {
