@@ -8,6 +8,13 @@ from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 
+# 新增 Selenium 相關的 import
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.chrome.options import Options as ChromeOptions
+# webdriver_manager 用於自動管理 ChromeDriver
+from webdriver_manager.chrome import ChromeDriverManager 
+
 app = Flask(__name__)
 CORS(app) # 啟用 CORS，允許所有來源的跨域請求，方便開發
 
@@ -15,8 +22,8 @@ CORS(app) # 啟用 CORS，允許所有來源的跨域請求，方便開發
 state = {
     "salary": 0.0,
     "living_expense": 0.0,
-    "start_month": 1,  # 1-12
-    "repay_list": [],  # [{"name": "小明", "debt": 10000.0}]
+    "start_month": 1,  # 1-12
+    "repay_list": [],  # [{"name": "小明", "debt": 10000.0}]
     "course_list": [], # [{"fee": 30000.0, "months": 6}]
     "month_records": [], # 計算結果的詳細記錄，用於 CSV 匯出
     "calculation_summary": "" # 計算結果的文字摘要
@@ -268,54 +275,54 @@ def calculate_repayment():
     
     result_text += "還款人還清時間：\n"
     if not repayment_completion_dates and repay_list:
-        result_text += "  - 所有還款人債務已在計算開始前還清，或無需償還。\n"
+        result_text += "  - 所有還款人債務已在計算開始前還清，或無需償還。\n"
     elif not repay_list:
-        result_text += "  - 無還款人。\n"
+        result_text += "  - 無還款人。\n"
     else:
         for name, date_str in repayment_completion_dates.items():
-            result_text += f"  - {name}: {date_str} 還清\n"
+            result_text += f"  - {name}: {date_str} 還清\n"
     result_text += "\n"
 
     result_text += "課程繳清時間：\n"
     if not course_completion_dates and course_list:
-        result_text += "  - 所有課程費用已在計算開始前繳清，或無需繳納。\n"
+        result_text += "  - 所有課程費用已在計算開始前繳清，或無需繳納。\n"
     elif not course_list:
-        result_text += "  - 無課程費用。\n"
+        result_text += "  - 無課程費用。\n"
     else:
         for name, date_str in course_completion_dates.items():
-            result_text += f"  - {name}: {date_str} 繳清\n"
+            result_text += f"  - {name}: {date_str} 繳清\n"
     result_text += "\n"
 
     result_text += "每月詳細還款計畫：\n"
     for record in month_records:
         result_text += f"月份: {record['date']} (第 {record['month_num']} 月)\n"
-        result_text += f"  可支配收入: {record['disposable_income']:.2f} 元\n"
+        result_text += f"  可支配收入: {record['disposable_income']:.2f} 元\n"
         
         if record["course_payments_detail"]:
-            result_text += "  課程繳納:\n"
+            result_text += "  課程繳納:\n"
             for course_name, amount in record["course_payments_detail"].items():
-                result_text += f"    - {course_name}: {amount:.2f} 元\n"
+                result_text += f"    - {course_name}: {amount:.2f} 元\n"
         
         if record["repayments_detail"]:
-            result_text += "  還款人分配:\n"
+            result_text += "  還款人分配:\n"
             for name, amount in record["repayments_detail"].items():
-                result_text += f"    - {name}: {amount:.2f} 元\n"
+                result_text += f"    - {name}: {amount:.2f} 元\n"
         
-        result_text += f"  當月總計還款/繳費: {record['total_repaid_this_month']:.2f} 元\n"
-        result_text += f"  當月剩餘可支配收入: {record['remaining_income']:.2f} 元\n"
+        result_text += f"  當月總計還款/繳費: {record['total_repaid_this_month']:.2f} 元\n"
+        result_text += f"  當月剩餘可支配收入: {record['remaining_income']:.2f} 元\n"
         
         # 顯示當月結束後的剩餘債務和課程費用
         if any(v > 0.001 for v in record['remaining_person_debts'].values()):
-            result_text += "  還款人剩餘債務:\n"
+            result_text += "  還款人剩餘債務:\n"
             for name, debt in record['remaining_person_debts'].items():
                 if debt > 0.001:
-                    result_text += f"    - {name}: {debt:.2f} 元\n"
+                    result_text += f"    - {name}: {debt:.2f} 元\n"
         
         if any(v > 0.001 for v in record['remaining_course_fees'].values()):
-            result_text += "  課程剩餘費用:\n"
+            result_text += "  課程剩餘費用:\n"
             for name, fee in record['remaining_course_fees'].items():
                 if fee > 0.001:
-                    result_text += f"    - {name}: {fee:.2f} 元\n"
+                    result_text += f"    - {name}: {fee:.2f} 元\n"
         result_text += "--------------------------------------\n"
 
     state["month_records"] = month_records # 儲存詳細記錄
@@ -392,6 +399,61 @@ def reset_data():
     }
     return jsonify({"status": "success", "message": "所有資料已清空！"})
 
+# 每五分鐘使用無頭瀏覽器訪問網頁的後台任務
+def visit_webpage_headless_periodically(interval_minutes):
+    """
+    每隔 `interval_minutes` 分鐘，使用無頭瀏覽器訪問指定的 URL。
+    """
+    interval_seconds = interval_minutes * 60
+    # 目標 URL，這裡使用您圖片中的 Render URL
+    URL_TO_VISIT = "https://test-10-2h45.onrender.com" 
+    
+    print(f"\n[後台訪問] 已啟動背景任務：每 {interval_minutes} 分鐘無頭訪問一次 {URL_TO_VISIT}")
+
+    # 配置 Chrome 選項，啟用無頭模式
+    chrome_options = ChromeOptions()
+    chrome_options.add_argument("--headless") # 啟用無頭模式
+    chrome_options.add_argument("--disable-gpu") # 某些Linux系統可能需要
+    chrome_options.add_argument("--no-sandbox") # Docker/某些Linux環境可能需要
+    chrome_options.add_argument("--disable-dev-shm-usage") # 避免 /dev/shm 內存不足
+
+    driver = None # 初始化 driver 變數
+
+    while True:
+        try:
+            # 如果 driver 不存在或已關閉，則重新初始化
+            # poll() 方法返回 None 表示進程仍在運行，非 None 表示進程已終止
+            if driver is None or driver.service.process.poll() is not None:
+                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [後台訪問] 正在初始化瀏覽器驅動...")
+                # 自動下載並設置 ChromeDriver
+                service = ChromeService(ChromeDriverManager().install())
+                driver = webdriver.Chrome(service=service, options=chrome_options)
+                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [後台訪問] 瀏覽器驅動已啟動。")
+
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [後台訪問] 正在訪問網頁: {URL_TO_VISIT}")
+            driver.get(URL_TO_VISIT)
+            # 你可以選擇在這裡添加一些頁面加載的等待，例如：
+            # time.sleep(5) # 等待5秒，確保頁面完全載入並執行JS
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [後台訪問] 網頁訪問成功。當前標題: {driver.title}")
+
+        except Exception as e:
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [後台訪問] 訪問網頁時發生錯誤: {e}")
+            # 如果發生錯誤，嘗試關閉 driver 以便下次循環重新初始化
+            if driver:
+                try:
+                    driver.quit()
+                except Exception as quit_e:
+                    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [後台訪問] 關閉瀏覽器驅動時發生錯誤: {quit_e}")
+                finally:
+                    driver = None # 將 driver 設置為 None，以便下次循環重新創建
+
+        print(f"等待 {interval_minutes} 分鐘...")
+        time.sleep(interval_seconds)
+
+    # 雖然這裡理論上不會執行（因為是無限循環），但為了代碼完整性
+    if driver:
+        driver.quit()
+
 # 運行 Flask 應用
 if __name__ == '__main__':
     # 檢查 index.html 是否存在於 template 資料夾中
@@ -401,13 +463,27 @@ if __name__ == '__main__':
         print("程式將退出。")
         exit()
 
-    # 自動開啟瀏覽器的函式
-    def open_browser():
-        time.sleep(1)  # 稍微延遲，確保 server 有啟動再開瀏覽器
-        webbrowser.open("http://127.0.0.1:5000/")
+    # 自動開啟瀏覽器的函式 (保留原有功能，在伺服器啟動時開啟一次可見的瀏覽器)
+    def open_browser_on_startup():
+        time.sleep(1)  # 稍微延遲，確保 server 有啟動再開瀏覽器
+        try:
+            # 這裡開啟的是本地 Flask 應用程式
+            webbrowser.open("http://127.0.0.1:5000/")
+            print("\n[啟動] 已在瀏覽器中開啟 http://127.0.0.1:5000/")
+        except Exception as e:
+            print(f"\n[啟動] 開啟瀏覽器失敗: {e}")
 
-    # 啟動瀏覽器線程
-    threading.Thread(target=open_browser).start()
+    # 啟動瀏覽器線程，在程式啟動時開啟一次本地網頁
+    threading.Thread(target=open_browser_on_startup).start()
+
+    # **新增：啟動每五分鐘使用無頭瀏覽器訪問網頁的後台線程**
+    # 這個線程將在後台運行，不會彈出視窗
+    threading.Thread(target=visit_webpage_headless_periodically, args=(5,), daemon=True).start()
+    # daemon=True 會讓這個線程在主程式（Flask 應用）結束時自動終止。
 
     # 啟動 Flask server
+    # 注意：在開發環境下 (debug=True) Flask 會啟動兩個進程（一個用於主應用，一個用於重新加載器），
+    # 這可能會導致 Selenium 驅動或自動開啟瀏覽器的線程被啟動兩次。
+    # 如果您看到重複的初始化訊息，這是預期行為。
+    # 在生產環境中，您會使用 Gunicorn 或 uWSGI 等 WSGI 服務器，它們通常只運行一個進程。
     app.run(debug=True, host='0.0.0.0', port=5000)
