@@ -1,12 +1,12 @@
+import os
+import io
+import pandas as pd
+from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
-import pandas as pd
-import io
-import os
-from datetime import datetime, timedelta
 
 app = Flask(__name__)
-CORS(app) # 啟用 CORS，允許所有來源的跨域請求，開發時方便
+CORS(app) # 啟用 CORS，允許所有來源的跨域請求，方便開發
 
 # 全局狀態，用於模擬數據庫。在生產環境應替換為實際數據庫。
 state = {
@@ -22,7 +22,12 @@ state = {
 # 根路由，提供前端文件
 @app.route('/')
 def index():
-    return send_file('index.html')
+    """
+    提供位於 'template' 資料夾中的 index.html 檔案。
+    """
+    # 使用 os.path.join 來構建正確的檔案路徑，確保跨作業系統的相容性
+    # app.root_path 會指向 money_net.py 所在的目錄
+    return send_file(os.path.join(app.root_path, 'template', 'index.html'))
 
 # API 路由區塊
 
@@ -36,8 +41,6 @@ def get_current_state():
         "start_month": state["start_month"],
         "repay_list": state["repay_list"],
         "course_list": state["course_list"],
-        # calculation_summary 不會在每次獲取狀態時返回，因為它是 calculate 的結果
-        # month_records 也不會返回，因為它可能很大，只在 export_csv 時用到
     })
 
 @app.route('/api/add_person', methods=['POST'])
@@ -150,7 +153,6 @@ def calculate_repayment():
     
     # 計算課程每期還款金額
     for i, course in enumerate(course_list):
-        # 假設課程從第一個月開始還款
         monthly_course_payments.append({
             "name": f"課程{i+1}",
             "monthly_amount": course["fee"] / course["months"],
@@ -239,6 +241,17 @@ def calculate_repayment():
         for person in repay_list:
             month_record["remaining_person_debts"][person["name"]] = max(0, current_person_debts[person["name"]])
 
+        # 檢查是否所有課程都已繳清
+        all_courses_paid = all(f <= 0.001 for f in current_course_remaining_fees)
+        
+        # 檢查是否所有還款人債務都已還清
+        all_debts_paid = current_debt_remaining <= 0.001
+
+        # 更新剩餘課程費用狀態
+        for i, course_item in enumerate(monthly_course_payments):
+            month_record["remaining_course_fees"][course_item["name"]] = max(0, current_course_remaining_fees[i])
+
+
         month_records.append(month_record)
         current_month_index += 1
 
@@ -251,16 +264,20 @@ def calculate_repayment():
     result_text += f"總月數：{current_month_index} 個月\n\n"
     
     result_text += "還款人還清時間：\n"
-    if not repayment_completion_dates:
-        result_text += "  - 尚無還款人債務需要償還或已償清。\n"
+    if not repayment_completion_dates and repay_list:
+        result_text += "  - 所有還款人債務已在計算開始前還清，或無需償還。\n"
+    elif not repay_list:
+        result_text += "  - 無還款人。\n"
     else:
         for name, date_str in repayment_completion_dates.items():
             result_text += f"  - {name}: {date_str} 還清\n"
     result_text += "\n"
 
     result_text += "課程繳清時間：\n"
-    if not course_completion_dates:
-        result_text += "  - 尚無課程費用需要繳納或已繳清。\n"
+    if not course_completion_dates and course_list:
+        result_text += "  - 所有課程費用已在計算開始前繳清，或無需繳納。\n"
+    elif not course_list:
+        result_text += "  - 無課程費用。\n"
     else:
         for name, date_str in course_completion_dates.items():
             result_text += f"  - {name}: {date_str} 繳清\n"
@@ -374,9 +391,10 @@ def reset_data():
 
 # 運行 Flask 應用
 if __name__ == '__main__':
-    # 檢查 index.html 是否存在
-    if not os.path.exists('index.html'):
-        print("錯誤：index.html 檔案未找到。請確保 index.html 位於與 money_net.py 相同的資料夾中。")
+    # 檢查 index.html 是否存在於 template 資料夾中
+    template_path = os.path.join(app.root_path, 'template', 'index.html')
+    if not os.path.exists(template_path):
+        print(f"錯誤：index.html 檔案未找到。請確保 index.html 位於 '{os.path.join(app.root_path, 'template')}' 資料夾中。")
         print("程式將退出。")
         exit()
         
