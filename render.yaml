@@ -1,14 +1,24 @@
 services:
   - type: web
-    name: super-repay
-    env: python
-    buildCommand: pip install -r requirements.txt # <-- 重要的修正
-    startCommand: gunicorn money_net:app --workers 4 --bind 0.0.0.0:$PORT # <-- 重要的修正
+    name: super-repay # 服務名稱
+    env: python # 環境為 Python
+    # 重要：這個指令告訴 Render 安裝您 requirements.txt 檔案中列出的所有套件，包括 Flask 和 Gunicorn。
+    buildCommand: pip install -r requirements.txt
+    # 重要：這個指令使用 Gunicorn 啟動您的 Flask 應用程式。
+    # - `money_net:app` 表示 Gunicorn 會從您的 money_net.py 檔案中載入名為 'app' 的物件（也就是您的 Flask 應用實例）。
+    # - `--workers 4` 設定 4 個工作進程以獲得更好的性能（數量可調整）。
+    # - `--bind 0.0.0.0:$PORT` 對於 Render 正確路由流量到您的應用程式至關重要。
+    startCommand: gunicorn money_net:app --workers 4 --bind 0.0.0.0:$PORT
 
+  # 這個 cron 任務旨在防止您的免費方案服務進入休眠狀態。
+  # 請確保 'https://test-10-2h45.onrender.com' 是您實際部署網站的 URL。
   - type: cron
-    name: keep-alive-cron
-    schedule: "*/10 * * * *" # <-- 修正了時間表達式
+    name: keep-alive-cron # cron 服務名稱
+    # 這個排程設定為每 10 分鐘執行一次。
+    schedule: "*/10 * * * *"
     env: python
     plan: free
-    buildCommand: "" # 對於 curl 這種單純的命令可以留空
+    # 對於單純的 curl 命令不需要 buildCommand
+    buildCommand: ""
+    # 這個指令使用 curl 訪問您的網站 URL，防止它進入閒置狀態。
     startCommand: "curl https://test-10-2h45.onrender.com"
