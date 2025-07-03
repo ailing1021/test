@@ -1,3 +1,4 @@
+import requests  # 確保最上面有匯入
 import webbrowser
 import threading
 import time
@@ -7,13 +8,6 @@ import pandas as pd
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
-
-# 新增 Selenium 相關的 import
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service as ChromeService
-from selenium.webdriver.chrome.options import Options as ChromeOptions
-# webdriver_manager 用於自動管理 ChromeDriver
-from webdriver_manager.chrome import ChromeDriverManager
 
 app = Flask(__name__)
 CORS(app) # 啟用 CORS，允許所有來源的跨域請求，方便開發
@@ -400,60 +394,24 @@ def reset_data():
     return jsonify({"status": "success", "message": "所有資料已清空！"})
 
 # 每五分鐘使用無頭瀏覽器訪問網頁的後台任務
-def visit_webpage_headless_periodically(interval_minutes):
+
+def ping_webpage_periodically(interval_minutes):
     """
-    每隔 `interval_minutes` 分鐘，使用無頭瀏覽器訪問指定的 URL。
+    每隔 interval_minutes 分鐘，使用 requests 發送 GET 請求保活
     """
     interval_seconds = interval_minutes * 60
-    # 目標 URL，這裡使用您圖片中的 Render URL
-    URL_TO_VISIT = "https://test-10-2h45.onrender.com" 
-    
-    print(f"\n[後台訪問] 已啟動背景任務：每 {interval_minutes} 分鐘無頭訪問一次 {URL_TO_VISIT}") # 修正變數名
+    URL_TO_VISIT = "https://test-10-2h45.onrender.com"
 
-    # 配置 Chrome 選項，啟用無頭模式
-    chrome_options = ChromeOptions()
-    chrome_options.add_argument("--headless") # 啟用無頭模式
-    chrome_options.add_argument("--disable-gpu") # 某些Linux系統可能需要
-    chrome_options.add_argument("--no-sandbox") # Docker/某些Linux環境可能需要
-    chrome_options.add_argument("--disable-dev-shm-usage") # 避免 /dev/shm 內存不足
-
-    driver = None # 初始化 driver 變數
+    print(f"\n[後台訪問] 已啟動背景任務：每 {interval_minutes} 分鐘發送 GET 請求到 {URL_TO_VISIT}")
 
     while True:
         try:
-            # 如果 driver 不存在或已關閉，則重新初始化
-            # poll() 方法返回 None 表示進程仍在運行，非 None 表示進程已終止
-            if driver is None or driver.service.process.poll() is not None:
-                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [後台訪問] 正在初始化瀏覽器驅動...")
-                # 自動下載並設置 ChromeDriver
-                service = ChromeService(ChromeDriverManager().install())
-                driver = webdriver.Chrome(service=service, options=chrome_options)
-                print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [後台訪問] 瀏覽器驅動已啟動。")
-
-            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [後台訪問] 正在訪問網頁: {URL_TO_VISIT}")
-            driver.get(URL_TO_VISIT)
-            # 你可以選擇在這裡添加一些頁面加載的等待，例如：
-            # time.sleep(5) # 等待5秒，確保頁面完全載入並執行JS
-            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [後台訪問] 網頁訪問成功。當前標題: {driver.title}")
-
+            response = requests.get(URL_TO_VISIT)
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] PING: {response.status_code}")
         except Exception as e:
-            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [後台訪問] 訪問網頁時發生錯誤: {e}")
-            # 如果發生錯誤，嘗試關閉 driver 以便下次循環重新初始化
-            if driver:
-                try:
-                    driver.quit()
-                except Exception as quit_e:
-                    print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [後台訪問] 關閉瀏覽器驅動時發生錯誤: {quit_e}")
-                finally:
-                    driver = None # 將 driver 設置為 None，以便下次循環重新創建
-
-        print(f"等待 {interval_minutes} 分鐘...")
+            print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] PING ERROR: {e}")
+        
         time.sleep(interval_seconds)
-
-    # 雖然這裡理論上不會執行（因為是無限循環），但為了代碼完整性
-    if driver:
-        driver.quit()
-
 # 運行 Flask 應用
 if __name__ == '__main__':
     # 檢查 index.html 是否存在於 template 資料夾中
@@ -478,7 +436,7 @@ if __name__ == '__main__':
 
     # **新增：啟動每五分鐘使用無頭瀏覽器訪問網頁的後台線程**
     # 這個線程將在後台運行，不會彈出視窗
-    threading.Thread(target=visit_webpage_headless_periodically, args=(5,), daemon=True).start()
+    threading.Thread(target=ping_webpage_periodically, args=(5,), daemon=True).start()
     # daemon=True 會讓這個線程在主程式（Flask 應用）結束時自動終止。
 
     # 啟動 Flask server
