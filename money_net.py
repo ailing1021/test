@@ -421,17 +421,6 @@ if __name__ == '__main__':
         exit()
 
     # 自動開啟瀏覽器的函式 (保留原有功能，在伺服器啟動時開啟一次可見的瀏覽器)
-    def open_browser_on_startup():
-        time.sleep(1)   # 稍微延遲，確保 server 有啟動再開瀏覽器
-        try:
-            # 這裡開啟的是本地 Flask 應用程式
-            webbrowser.open("http://127.0.0.1:5000/")
-            print("\n[啟動] 已在瀏覽器中開啟 http://127.0.0.1:5000/")
-        except Exception as e:
-            print(f"\n[啟動] 開啟瀏覽器失敗: {e}")
-
-    # 啟動瀏覽器線程，在程式啟動時開啟一次本地網頁
-    threading.Thread(target=open_browser_on_startup).start()
 
     # **新增：啟動每五分鐘使用無頭瀏覽器訪問網頁的後台線程**
     # 這個線程將在後台運行，不會彈出視窗
