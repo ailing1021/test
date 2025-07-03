@@ -2,13 +2,13 @@ services:
   - type: web
     name: super-repay
     env: python
-    buildCommand: ""
-    startCommand: "gunicorn money_net:app"
+    buildCommand: pip install -r requirements.txt # <-- 重要的修正
+    startCommand: gunicorn money_net:app --workers 4 --bind 0.0.0.0:$PORT # <-- 重要的修正
 
   - type: cron
     name: keep-alive-cron
-    schedule: "*/10 * * * *"
+    schedule: "*/10 * * * *" # <-- 修正了時間表達式
     env: python
     plan: free
-    buildCommand: ""
+    buildCommand: "" # 對於 curl 這種單純的命令可以留空
     startCommand: "curl https://test-10-2h45.onrender.com"
