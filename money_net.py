@@ -1,3 +1,6 @@
+import webbrowser
+import threading
+import time
 import os
 import io
 import pandas as pd
@@ -397,6 +400,14 @@ if __name__ == '__main__':
         print(f"錯誤：index.html 檔案未找到。請確保 index.html 位於 '{os.path.join(app.root_path, 'template')}' 資料夾中。")
         print("程式將退出。")
         exit()
-        
-    # 在生產環境中，您可能需要更健壯的伺服器，例如 Gunicorn
-    app.run(debug=True, host='0.0.0.0', port=5000) # 開啟 debug 模式方便開發
+
+    # 自動開啟瀏覽器的函式
+    def open_browser():
+        time.sleep(1)  # 稍微延遲，確保 server 有啟動再開瀏覽器
+        webbrowser.open("http://127.0.0.1:5000/")
+
+    # 啟動瀏覽器線程
+    threading.Thread(target=open_browser).start()
+
+    # 啟動 Flask server
+    app.run(debug=True, host='0.0.0.0', port=5000)
