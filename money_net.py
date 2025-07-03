@@ -211,7 +211,7 @@ def export_csv():
 
 @app.route('/')
 def index():
-    return app.send_static_file('index.html')
+    return render_template('index.html')  # 會套用 layout.html
 
 @app.route('/privacy')
 def privacy():
