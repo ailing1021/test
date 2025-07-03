@@ -22,7 +22,7 @@ CORS(app) # 啟用 CORS，允許所有來源的跨域請求，方便開發
 state = {
     "salary": 0.0,
     "living_expense": 0.0,
-    "start_month": 1,  # 1-12
+    "start_month": 1, # 1-12
     "repay_list": [],  # [{"name": "小明", "debt": 10000.0}]
     "course_list": [], # [{"fee": 30000.0, "months": 6}]
     "month_records": [], # 計算結果的詳細記錄，用於 CSV 匯出
@@ -465,7 +465,7 @@ if __name__ == '__main__':
 
     # 自動開啟瀏覽器的函式 (保留原有功能，在伺服器啟動時開啟一次可見的瀏覽器)
     def open_browser_on_startup():
-        time.sleep(1)  # 稍微延遲，確保 server 有啟動再開瀏覽器
+        time.sleep(1) # 稍微延遲，確保 server 有啟動再開瀏覽器
         try:
             # 這裡開啟的是本地 Flask 應用程式
             webbrowser.open("http://127.0.0.1:5000/")
