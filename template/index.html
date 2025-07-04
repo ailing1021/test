@@ -14,10 +14,17 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <style>
-    html, body, #root {
+    /* Ensure html and body take full height */
+    html, body {
       height: 100%;
       margin: 0;
       padding: 0;
+    }
+    /* Set min-height for the root React element to be full screen, and use flexbox */
+    #root {
+      min-height: 100vh; /* Changed from height: 100% to min-height: 100vh for robustness */
+      display: flex;
+      flex-direction: column; /* Arrange children in a column */
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
       background-color: #f4f7fa; /* Softer blue-gray background */
     }
@@ -60,6 +67,13 @@
     th, td {
       border: 1px solid #e5e7eb;
     }
+    /* Sticky header for tables */
+    .sticky-header {
+      position: sticky;
+      top: 0;
+      background-color: #f9fafb; /* Light background for sticky header */
+      z-index: 10; /* Ensure it stays above other content when scrolling */
+    }
   </style>
 
   <meta name="google-site-verification" content="BCvXzgcedvqCehBvT5sfZjBzHe56ld3ft6gNTqERsyE" />
@@ -76,7 +90,246 @@
   </script>
 </head>
 <body>
-  <div id="root" class="h-full flex flex-col"></div>
+  <div id="root"> {/* Removed h-full as min-h-screen is more appropriate here */}
+    {/* Main content wrapper - This will grow to push the footer down */}
+    <div class="flex-grow"> 
+      <div class="container max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-center text-gray-800">💰 超級還款試算表</h1>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-8">
+          <button class="btn bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700" onClick={() => openModal('setSalary')} title="設定薪水">
+            薪水：{state.salary.toFixed(0)}
+          </button>
+          <button class="btn bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700" onClick={() => openModal('setLivingExpense')} title="設定生活費">
+            生活費：{state.livingExpense.toFixed(0)}
+          </button>
+          <button class="btn bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700" onClick={() => openModal('setStartMonth')} title="設定起始月份">
+            起始月：{state.startMonth}
+          </button>
+          <button class="btn bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700" onClick={() => openModal('addPerson')} title="新增還款人">
+            新增還款人
+          </button>
+          <button class="btn bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700" onClick={() => openModal('addCourse')} title="新增課程費用">
+            新增課程費用
+          </button>
+          <button class="btn bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700" onClick={calculate} title="開始計算">
+            計算試算
+          </button>
+          <button class="btn bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600" onClick={copyResult} title="複製試算結果">
+            複製結果
+          </button>
+          <button class="btn bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700" onClick={exportCsv} title="匯出試算結果CSV">
+            匯出CSV
+          </button>
+          <button class="btn bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700" onClick={clearAll} title="清空所有資料">
+            清空資料
+          </button>
+          <button class="btn bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800" onClick={exitApp} title="離開網頁">
+            離開
+          </button>
+        </div>
+
+        <div class="mb-8 bg-white rounded-lg shadow-sm p-6">
+          <h2 class="text-xl font-semibold mb-4 text-gray-800">還款人列表</h2>
+          {state.repayList.length === 0 ? (
+            <p class="text-gray-500">尚無還款人，請新增。</p>
+          ) : (
+            <>
+              <div class="overflow-x-auto mb-6">
+                <table class="w-full text-sm text-left">
+                  <thead class="bg-gray-50 sticky-header"> {/* Apply sticky-header class here */}
+                    <tr>
+                      <th class="p-3 font-semibold text-gray-700 border">姓名</th>
+                      <th class="p-3 font-semibold text-gray-700 border">欠款金額 (元)</th>
+                      <th class="p-3 font-semibold text-gray-700 border">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {state.repayList.map((p, i) => (
+                      <tr key={i} class="border-b hover:bg-gray-50">
+                        <td class="p-3 border">{p.name}</td>
+                        <td class="p-3 border">{p.debt.toFixed(2)}</td>
+                        <td class="p-3 border">
+                          <button
+                            class="text-red-600 hover:text-red-800 font-medium"
+                            onClick={() => removePerson(i)}
+                          >
+                            刪除
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div class="mt-6 p-4 border border-gray-200 rounded-lg bg-gray-50 flex justify-center items-center">
+                <div style={{ height: '300px', width: '100%', maxWidth: '500px' }}>
+                  <canvas id="overall-debt-chart"></canvas>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div class="mb-8 bg-white rounded-lg shadow-sm p-6">
+          <h2 class="text-xl font-semibold mb-4 text-gray-800">課程費用列表</h2>
+          {state.courseList.length === 0 ? (
+            <p class="text-gray-500">尚無課程費用，請新增。</p>
+          ) : (
+            <div class="overflow-x-auto">
+              <table class="w-full text-sm text-left">
+                <thead class="bg-gray-50 sticky-header"> {/* Apply sticky-header class here */}
+                  <tr>
+                    <th class="p-3 font-semibold text-gray-700 border">總費用 (元)</th>
+                    <th class="p-3 font-semibold text-gray-700 border">期數 (月)</th>
+                    <th class="p-3 font-semibold text-gray-700 border">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {state.courseList.map((c, i) => (
+                    <tr key={i} class="border-b hover:bg-gray-50">
+                      <td class="p-3 border">{c.fee.toFixed(2)}</td>
+                      <td class="p-3 border">{c.months}</td>
+                      <td class="p-3 border">
+                        <button
+                          class="text-red-600 hover:text-red-800 font-medium"
+                          onClick={() => removeCourse(i)}
+                        >
+                            刪除
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm p-6 overflow-x-auto">
+          <h2 class="text-xl font-semibold mb-4 text-gray-800">試算結果</h2>
+          {state.calculationResult ? (
+            <div>
+              {(() => {
+                const { headers, rows } = parseResultToTable(state.calculationResult);
+                if (headers.length === 0 && rows.length === 0) {
+                  return <p class="text-gray-500">無有效試算結果，請檢查輸入數據或重新計算。</p>;
+                }
+                return (
+                  <table class="w-full text-sm text-left" aria-label="試算結果表格">
+                    <thead class="bg-gray-50 sticky-header"> {/* Apply sticky-header class here */}
+                      <tr>
+                        {headers.map((header, index) => (
+                          <th key={index} class="p-3 font-semibold text-gray-700 border min-w-[120px] whitespace-nowrap">
+                            {header}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((row, rowIndex) => (
+                        <tr
+                          key={rowIndex}
+                          class={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
+                        >
+                          {row.map((cell, cellIndex) => (
+                            <td
+                              key={cellIndex}
+                              class="p-3 border text-gray-600 whitespace-nowrap min-w-[120px]"
+                            >
+                              {cell}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                );
+              })()}
+            </div>
+          ) : (
+            <p class="text-gray-500">無試算結果，請先執行計算。</p>
+          )}
+        </div>
+
+        <ModalContent />
+      </div>
+    </div> {/* End of flex-grow wrapper */}
+
+    <div id="cookie-banner" style="
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: #f8f8f8;
+      padding: 16px;
+      box-shadow: 0 -2px 6px rgba(0,0,0,0.15);
+      font-family: sans-serif;
+      font-size: 14px;
+      color: #333;
+      z-index: 9999;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    ">
+      <span style="flex: 1; min-width: 200px; text-align: center;">
+        我們使用 Cookie 改善網站功能與分析流量。請選擇是否接受。
+      </span>
+      <div>
+        <button onclick="acceptCookies()" style="background: #007bff; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer;">
+          接受全部
+        </button>
+        <button onclick="declineCookies()" style="background: #ccc; color: #000; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; margin-left: 8px;">
+          僅使用必要
+        </button>
+      </div>
+    </div>
+
+    <script>
+      function acceptCookies() {
+        localStorage.setItem('cookieConsent', 'accepted');
+        if (typeof gtag === 'function') {
+          gtag('consent', 'update', {
+            ad_storage: 'granted',
+            analytics_storage: 'granted'
+          });
+        }
+        document.getElementById('cookie-banner').style.display = 'none';
+      }
+
+      function declineCookies() {
+        localStorage.setItem('cookieConsent', 'declined');
+        if (typeof gtag === 'function') {
+          gtag('consent', 'update', {
+            ad_storage: 'denied',
+            analytics_storage: 'denied'
+          });
+        }
+        document.getElementById('cookie-banner').style.display = 'none';
+      }
+
+      // Check consent on load
+      document.addEventListener('DOMContentLoaded', () => {
+        if (localStorage.getItem('cookieConsent')) {
+          document.getElementById('cookie-banner').style.display = 'none';
+        } else {
+          document.getElementById('cookie-banner').style.display = 'flex'; // Ensure it's visible if no consent
+        }
+      });
+    </script>
+
+    {/* Footer element - remains at the bottom due to flex-grow on the content above it */}
+    <footer class="text-center text-sm text-gray-500 mt-10 py-4 border-t border-gray-300 bg-white">
+      <p>
+        <a href="/about" class="underline hover:text-blue-600">關於我們</a> |
+        <a href="/privacy" class="underline hover:text-blue-600">隱私權政策</a> |
+        <a href="/terms" class="underline hover:text-blue-600">服務條款</a> |
+        <a href="/contact" class="underline hover:text-blue-600">聯絡我們</a>
+      </p>
+    </footer>
+  </div> {/* End of #root */}
 
   <script type="text/babel">
     function App() {
@@ -569,16 +822,16 @@
         }
 
         return (
-          <div className="modal" onClick={closeModal}>
-            <div className="modal-content" onClick={e => e.stopPropagation()}>
-              <h2 className="text-2xl font-semibold mb-6 text-gray-800">{title}</h2>
-              <div className="mb-4">
-                <label className="block mb-2 text-sm font-medium text-gray-700">{label1}:</label>
+          <div class="modal" onClick={closeModal}>
+            <div class="modal-content" onClick={e => e.stopPropagation()}>
+              <h2 class="text-2xl font-semibold mb-6 text-gray-800">{title}</h2>
+              <div class="mb-4">
+                <label class="block mb-2 text-sm font-medium text-gray-700">{label1}:</label>
                 <input
                   type={input1Type}
                   ref={input1Ref}
                   placeholder={placeholder1}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   autoFocus
                   defaultValue={
                     state.modalType === 'setSalary' ? state.salary :
@@ -588,25 +841,25 @@
                 />
               </div>
               {showInput2 && (
-                <div className="mb-4">
-                  <label className="block mb-2 text-sm font-medium text-gray-700">{label2}:</label>
+                <div class="mb-4">
+                  <label class="block mb-2 text-sm font-medium text-gray-700">{label2}:</label>
                   <input
                     type={input2Type}
                     ref={input2Ref}
                     placeholder={placeholder2}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               )}
-              <div className="flex justify-end space-x-3">
+              <div class="flex justify-end space-x-3">
                 <button
-                  className="btn bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg"
+                  class="btn bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg"
                   onClick={closeModal}
                 >
                   取消
                 </button>
                 <button
-                  className="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+                  class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
                   onClick={handleSubmit}
                 >
                   確定
@@ -618,66 +871,67 @@
       };
 
       return (
-        <div className="flex flex-col min-h-screen bg-gray-100">
-          <div className="container flex-grow max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold mb-8 text-center text-gray-800">💰 超級還款試算表</h1>
+        // The main structure for the App component now leverages the flexbox setup from #root
+        <>
+          <div class="container flex-grow max-w-4xl mx-auto"> {/* This div takes care of pushing the footer down */}
+            <h1 class="text-3xl font-bold mb-8 text-center text-gray-800">💰 超級還款試算表</h1>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-8">
-              <button className="btn bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700" onClick={() => openModal('setSalary')} title="設定薪水">
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-8">
+              <button class="btn bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700" onClick={() => openModal('setSalary')} title="設定薪水">
                 薪水：{state.salary.toFixed(0)}
               </button>
-              <button className="btn bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700" onClick={() => openModal('setLivingExpense')} title="設定生活費">
+              <button class="btn bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700" onClick={() => openModal('setLivingExpense')} title="設定生活費">
                 生活費：{state.livingExpense.toFixed(0)}
               </button>
-              <button className="btn bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700" onClick={() => openModal('setStartMonth')} title="設定起始月份">
+              <button class="btn bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700" onClick={() => openModal('setStartMonth')} title="設定起始月份">
                 起始月：{state.startMonth}
               </button>
-              <button className="btn bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700" onClick={() => openModal('addPerson')} title="新增還款人">
+              <button class="btn bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700" onClick={() => openModal('addPerson')} title="新增還款人">
                 新增還款人
               </button>
-              <button className="btn bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700" onClick={() => openModal('addCourse')} title="新增課程費用">
+              <button class="btn bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700" onClick={() => openModal('addCourse')} title="新增課程費用">
                 新增課程費用
               </button>
-              <button className="btn bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700" onClick={calculate} title="開始計算">
+              <button class="btn bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700" onClick={calculate} title="開始計算">
                 計算試算
               </button>
-              <button className="btn bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600" onClick={copyResult} title="複製試算結果">
+              <button class="btn bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600" onClick={copyResult} title="複製試算結果">
                 複製結果
               </button>
-              <button className="btn bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700" onClick={exportCsv} title="匯出試算結果CSV">
+              <button class="btn bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700" onClick={exportCsv} title="匯出試算結果CSV">
                 匯出CSV
               </button>
-              <button className="btn bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700" onClick={clearAll} title="清空所有資料">
+              <button class="btn bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700" onClick={clearAll} title="清空所有資料">
                 清空資料
               </button>
-              <button className="btn bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800" onClick={exitApp} title="離開網頁">
+              <button class="btn bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800" onClick={exitApp} title="離開網頁">
                 離開
               </button>
             </div>
 
-            <div className="mb-8 bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-semibold mb-4 text-gray-800">還款人列表</h2>
+            <div class="mb-8 bg-white rounded-lg shadow-sm p-6">
+              <h2 class="text-xl font-semibold mb-4 text-gray-800">還款人列表</h2>
               {state.repayList.length === 0 ? (
-                <p className="text-gray-500">尚無還款人，請新增。</p>
+                <p class="text-gray-500">尚無還款人，請新增。</p>
               ) : (
                 <> {/* React Fragment to return multiple elements */}
-                  <div className="overflow-x-auto mb-6">
-                    <table className="w-full text-sm text-left">
-                      <thead className="bg-gray-50">
+                  <div class="overflow-x-auto mb-6">
+                    <table class="w-full text-sm text-left">
+                      <thead class="bg-gray-50 sticky top-0">
                         <tr>
-                          <th className="p-3 font-semibold text-gray-700 border">姓名</th>
-                          <th className="p-3 font-semibold text-gray-700 border">欠款金額 (元)</th>
-                          <th className="p-3 font-semibold text-gray-700 border">操作</th>
+                          <th class="p-3 font-semibold text-gray-700 border">姓名</th>
+                          <th class="p-3 font-semibold text-gray-700 border">欠款金額 (元)</th>
+                          <th class="p-3 font-semibold text-gray-700 border">操作</th>
                         </tr>
                       </thead>
                       <tbody>
                         {state.repayList.map((p, i) => (
-                          <tr key={i} className="border-b hover:bg-gray-50">
-                            <td className="p-3 border">{p.name}</td>
-                            <td className="p-3 border">{p.debt.toFixed(2)}</td>
-                            <td className="p-3 border">
+                          <tr key={i} class="border-b hover:bg-gray-50">
+                            <td class="p-3 border">{p.name}</td>
+                            <td class="p-3 border">{p.debt.toFixed(2)}</td>
+                            <td class="p-3 border">
                               <button
-                                className="text-red-600 hover:text-red-800 font-medium"
+                                class="text-red-600 hover:text-red-800 font-medium"
                                 onClick={() => removePerson(i)}
                               >
                                 刪除
@@ -689,7 +943,7 @@
                     </table>
                   </div>
                   {/* Single Pie Chart for Total Debt Distribution */}
-                  <div className="mt-6 p-4 border border-gray-200 rounded-lg bg-gray-50 flex justify-center items-center">
+                  <div class="mt-6 p-4 border border-gray-200 rounded-lg bg-gray-50 flex justify-center items-center">
                     <div style={{ height: '300px', width: '100%', maxWidth: '500px' }}> {/* Increased maxWidth for chart */}
                       <canvas id="overall-debt-chart"></canvas>
                     </div>
@@ -698,28 +952,28 @@
               )}
             </div>
 
-            <div className="mb-8 bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-semibold mb-4 text-gray-800">課程費用列表</h2>
+            <div class="mb-8 bg-white rounded-lg shadow-sm p-6">
+              <h2 class="text-xl font-semibold mb-4 text-gray-800">課程費用列表</h2>
               {state.courseList.length === 0 ? (
-                <p className="text-gray-500">尚無課程費用，請新增。</p>
+                <p class="text-gray-500">尚無課程費用，請新增。</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left">
-                    <thead className="bg-gray-50">
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm text-left">
+                    <thead class="bg-gray-50 sticky top-0">
                       <tr>
-                        <th className="p-3 font-semibold text-gray-700 border">總費用 (元)</th>
-                        <th className="p-3 font-semibold text-gray-700 border">期數 (月)</th>
-                        <th className="p-3 font-semibold text-gray-700 border">操作</th>
+                        <th class="p-3 font-semibold text-gray-700 border">總費用 (元)</th>
+                        <th class="p-3 font-semibold text-gray-700 border">期數 (月)</th>
+                        <th class="p-3 font-semibold text-gray-700 border">操作</th>
                       </tr>
                     </thead>
                     <tbody>
                       {state.courseList.map((c, i) => (
-                        <tr key={i} className="border-b hover:bg-gray-50">
-                          <td className="p-3 border">{c.fee.toFixed(2)}</td>
-                          <td className="p-3 border">{c.months}</td>
-                          <td className="p-3 border">
+                        <tr key={i} class="border-b hover:bg-gray-50">
+                          <td class="p-3 border">{c.fee.toFixed(2)}</td>
+                          <td class="p-3 border">{c.months}</td>
+                          <td class="p-3 border">
                             <button
-                              className="text-red-600 hover:text-red-800 font-medium"
+                              class="text-red-600 hover:text-red-800 font-medium"
                               onClick={() => removeCourse(i)}
                             >
                                 刪除
@@ -733,21 +987,21 @@
               )}
             </div>
 
-            <div className="flex-grow bg-white rounded-lg shadow-sm p-6 overflow-x-auto">
-              <h2 className="text-xl font-semibold mb-4 text-gray-800">試算結果</h2>
+            <div class="flex-grow bg-white rounded-lg shadow-sm p-6 overflow-x-auto">
+              <h2 class="text-xl font-semibold mb-4 text-gray-800">試算結果</h2>
               {state.calculationResult ? (
                 <div>
                   {(() => {
                     const { headers, rows } = parseResultToTable(state.calculationResult);
                     if (headers.length === 0 && rows.length === 0) {
-                      return <p className="text-gray-500">無有效試算結果，請檢查輸入數據或重新計算。</p>;
+                      return <p class="text-gray-500">無有效試算結果，請檢查輸入數據或重新計算。</p>;
                     }
                     return (
-                      <table className="w-full text-sm text-left" aria-label="試算結果表格">
-                        <thead className="bg-gray-50 sticky top-0">
+                      <table class="w-full text-sm text-left" aria-label="試算結果表格">
+                        <thead class="bg-gray-50 sticky top-0">
                           <tr>
                             {headers.map((header, index) => (
-                              <th key={index} className="p-3 font-semibold text-gray-700 border min-w-[120px] whitespace-nowrap">
+                              <th key={index} class="p-3 font-semibold text-gray-700 border min-w-[120px] whitespace-nowrap">
                                 {header}
                               </th>
                             ))}
@@ -758,12 +1012,12 @@
                           {rows.map((row, rowIndex) => (
                             <tr
                               key={rowIndex}
-                              className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
+                              class={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
                             >
                               {row.map((cell, cellIndex) => (
                                 <td
                                   key={cellIndex}
-                                  className="p-3 border text-gray-600 whitespace-nowrap min-w-[120px]"
+                                  class="p-3 border text-gray-600 whitespace-nowrap min-w-[120px]"
                                 >
                                   {cell}
                                 </td>
@@ -777,85 +1031,17 @@
                   })()}
                 </div>
               ) : (
-                <p className="text-gray-500">無試算結果，請先執行計算。</p>
+                <p class="text-gray-500">無試算結果，請先執行計算。</p>
               )}
             </div>
 
             <ModalContent />
           </div>
-        </div>
+        </>
       );
     }
 
     ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
-
-  <div id="cookie-banner" style="
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: #f8f8f8;
-    padding: 16px;
-    box-shadow: 0 -2px 6px rgba(0,0,0,0.15);
-    font-family: sans-serif;
-    font-size: 14px;
-    color: #333;
-    z-index: 9999;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-  ">
-    <span style="flex: 1; min-width: 200px; text-align: center;">
-      我們使用 Cookie 改善網站功能與分析流量。請選擇是否接受。
-    </span>
-    <div>
-      <button onclick="acceptCookies()" style="background: #007bff; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer;">
-        接受全部
-      </button>
-      <button onclick="declineCookies()" style="background: #ccc; color: #000; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; margin-left: 8px;">
-        僅使用必要
-      </button>
-    </div>
-  </div>
-
-  <script>
-    function acceptCookies() {
-      localStorage.setItem('cookieConsent', 'accepted');
-      if (typeof gtag === 'function') {
-        gtag('consent', 'update', {
-          ad_storage: 'granted',
-          analytics_storage: 'granted'
-        });
-      }
-      document.getElementById('cookie-banner').style.display = 'none';
-    }
-
-    function declineCookies() {
-      localStorage.setItem('cookieConsent', 'declined');
-      if (typeof gtag === 'function') {
-        gtag('consent', 'update', {
-          ad_storage: 'denied',
-          analytics_storage: 'denied'
-        });
-      }
-      document.getElementById('cookie-banner').style.display = 'none';
-    }
-
-    if (localStorage.getItem('cookieConsent')) {
-      document.getElementById('cookie-banner').style.display = 'none';
-    }
-  </script>
-
-  <footer class="text-center text-sm text-gray-500 mt-10 py-4 border-t border-gray-300 bg-white">
-    <p>
-      <a href="/about" class="underline hover:text-blue-600">關於我們</a> |
-      <a href="/privacy" class="underline hover:text-blue-600">隱私權政策</a> |
-      <a href="/terms" class="underline hover:text-blue-600">服務條款</a> |
-      <a href="/contact" class="underline hover:text-blue-600">聯絡我們</a>
-    </p>
-  </footer>
 </body>
 </html>
