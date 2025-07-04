@@ -47,16 +47,11 @@
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){ dataLayer.push(arguments); }
-
     gtag('js', new Date());
-
-    // Google Consent Mode v2 預設為拒絕，等待使用者選擇
     gtag('consent', 'default', {
       ad_storage: 'denied',
       analytics_storage: 'denied'
     });
-
-    // 初始化 Google Analytics
     gtag('config', 'G-WGEGPPKK5D');
   </script>
 </head>
@@ -65,7 +60,6 @@
 
   <script type="text/babel">
     function App() {
-      // 初始狀態：主要作為預設值，實際數據從後端獲取
       const getInitialState = () => {
         return {
           salary: 0,
@@ -80,12 +74,10 @@
 
       const [state, setState] = React.useState(getInitialState);
 
-      // Effect Hook 用於在組件載入時從後端獲取最新狀態
       React.useEffect(() => {
         fetchCurrentState();
-      }, []); // 空依賴數組表示只在組件 mount 時運行一次
+      }, []);
 
-      // 輔助函數：從後端獲取當前應用程式狀態並更新前端 state
       const fetchCurrentState = async () => {
         try {
           const response = await fetch('/api/get_current_state');
@@ -118,7 +110,6 @@
         setState(prev => ({ ...prev, modalType: null }));
       };
 
-      // 修改為呼叫後端 API
       const addPerson = async (name, debt) => {
         if (!name.trim()) {
           alert("姓名不能為空");
@@ -131,9 +122,7 @@
         try {
           const response = await fetch('/api/add_person', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: name.trim(), debt: parseFloat(debt) }),
           });
           const data = await response.json();
@@ -151,7 +140,6 @@
         }
       };
 
-      // 修改為呼叫後端 API
       const addCourse = async (fee, months) => {
         if (isNaN(parseFloat(fee)) || parseFloat(fee) <= 0) {
           alert("課程總費用必須大於0");
@@ -164,9 +152,7 @@
         try {
           const response = await fetch('/api/add_course', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ fee: parseFloat(fee), months: parseInt(months) }),
           });
           const data = await response.json();
@@ -174,7 +160,7 @@
             await fetchCurrentState();
             return true;
           } else {
-            alert("新增課程失敗: " + (data.message captions || response.statusText));
+            alert("新增課程失敗: " + (data.message || response.statusText));
             return false;
           }
         } catch (error) {
@@ -184,7 +170,6 @@
         }
       };
 
-      // 修改為呼叫後端 API
       const setSalary = async (salary) => {
         if (isNaN(parseFloat(salary)) || parseFloat(salary) < 0) {
           alert("薪水必須是非負數");
@@ -193,9 +178,7 @@
         try {
           const response = await fetch('/api/set_salary', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ salary: parseFloat(salary) }),
           });
           const data = await response.json();
@@ -213,7 +196,6 @@
         }
       };
 
-      // 修改為呼叫後端 API
       const setLivingExpense = async (expense) => {
         if (isNaN(parseFloat(expense)) || parseFloat(expense) < 0) {
           alert("生活費必須是非負數");
@@ -222,9 +204,7 @@
         try {
           const response = await fetch('/api/set_living_expense', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ expense: parseFloat(expense) }),
           });
           const data = await response.json();
@@ -242,7 +222,6 @@
         }
       };
 
-      // 修改為呼叫後端 API
       const setStartMonth = async (month) => {
         const monthInt = parseInt(month);
         if (!Number.isInteger(monthInt) || monthInt < 1 || monthInt > 12) {
@@ -252,9 +231,7 @@
         try {
           const response = await fetch('/api/set_start_month', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ start_month: monthInt }),
           });
           const data = await response.json();
@@ -272,7 +249,6 @@
         }
       };
 
-      // 刪除還款人 - 此功能目前僅為前端視覺移除
       const removePerson = (index) => {
         if (!confirm(`確定要從前端列表中移除還款人「${state.repayList[index].name}」嗎？\n(注意：此操作不會同步清除後端數據，如需徹底清除請使用「清空資料」)`)) return;
         const newList = [...state.repayList];
@@ -280,7 +256,6 @@
         setState(prev => ({ ...prev, repayList: newList }));
       };
 
-      // 刪除課程 - 同上，後端目前沒有獨立的刪除 API
       const removeCourse = (index) => {
         if (!confirm(`確定要從前端列表中移除課程 #${index + 1} 嗎？\n(注意：此操作不會同步清除後端數據，如需徹底清除請使用「清空資料」)`)) return;
         const newList = [...state.courseList];
@@ -288,22 +263,18 @@
         setState(prev => ({ ...prev, courseList: newList }));
       };
 
-      // 計算還款試算表 - 呼叫後端 API
       const calculate = async () => {
         try {
           const response = await fetch('/api/calculate', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({})
           });
           const data = await response.json();
+          console.log('API response:', data); // Debug API response
           if (response.ok && data.status === 'success') {
-            setState(prev => ({
-              ...prev,
-              calculationResult: data.result,
-            }));
+            console.log('calculationResult:', data.result); // Debug result
+            setState(prev => ({ ...prev, calculationResult: data.result }));
           } else {
             alert("計算失敗: " + (data.message || response.statusText));
             setState(prev => ({ ...prev, calculationResult: `錯誤: ${data.message || response.statusText}` }));
@@ -315,7 +286,6 @@
         }
       };
 
-      // 複製試算結果到剪貼簿
       const copyResult = async () => {
         try {
           if (state.calculationResult) {
@@ -330,7 +300,6 @@
         }
       };
 
-      // 匯出CSV - 呼叫後端 API
       const exportCsv = async () => {
         try {
           const response = await fetch('/api/export_csv', {
@@ -340,7 +309,7 @@
             const contentDisposition = response.headers.get('Content-Disposition');
             let filename = 'repay_result.csv';
             if (contentDisposition && contentDisposition.includes('filename=')) {
-                filename = contentDisposition.split('filename=')[1].trim().replace(/"/g, '');
+              filename = contentDisposition.split('filename=')[1].trim().replace(/"/g, '');
             }
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
@@ -362,15 +331,12 @@
         }
       };
 
-      // 清空所有資料 - 呼叫後端 API
       const clearAll = async () => {
         if (!confirm('確定要清空所有設定和結果嗎？這將重置所有後端數據。')) return;
         try {
           const response = await fetch('/api/reset', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({})
           });
           const data = await response.json();
@@ -387,25 +353,37 @@
         }
       };
 
-      // 離開應用程式
       const exitApp = () => {
         if (confirm('確定離開？')) {
           window.location.href = 'about:blank';
         }
       };
 
-      // 解析 calculationResult 為表格數據
       const parseResultToTable = (result) => {
         if (!result || result.trim() === '') {
+          console.log('calculationResult is empty or invalid');
           return { headers: [], rows: [] };
         }
-        const lines = result.trim().split('\n');
-        const headers = lines[0].split('\t').map(h => h.trim());
-        const rows = lines.slice(1).map(line => line.split('\t').map(cell => cell.trim()));
-        return { headers, rows };
+        try {
+          // Try parsing as JSON first
+          const data = JSON.parse(result);
+          console.log('Parsed as JSON:', data);
+          return {
+            headers: data.headers || [],
+            rows: data.rows || []
+          };
+        } catch (jsonError) {
+          console.log('Not JSON, trying tab-separated:', jsonError);
+          // Fall back to tab-separated
+          const lines = result.trim().split('\n');
+          const headers = lines[0].split('\t').map(h => h.trim());
+          const rows = lines.slice(1).map(line => line.split('\t').map(cell => cell.trim()));
+          console.log('Parsed headers:', headers);
+          console.log('Parsed rows:', rows);
+          return { headers, rows };
+        }
       };
 
-      // Modal 內部表單元件
       const ModalContent = () => {
         if (!state.modalType) return null;
 
@@ -435,7 +413,7 @@
               return;
           }
           if (success) {
-              closeModal();
+            closeModal();
           }
         };
 
@@ -545,7 +523,6 @@
         <div className="flex flex-col h-full p-4 max-w-3xl mx-auto">
           <h1 className="text-3xl font-bold mb-4 text-center">💰 超級還款試算表</h1>
 
-          {/* 按鈕區 */}
           <div className="flex flex-wrap gap-3 mb-6 justify-center">
             <button
               className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 whitespace-nowrap"
@@ -619,7 +596,6 @@
             </button>
           </div>
 
-          {/* 還款人列表 */}
           <div className="mb-6 bg-white rounded shadow p-4 overflow-auto max-h-48">
             <h2 className="text-xl font-semibold mb-3">還款人列表</h2>
             {state.repayList.length === 0 ? (
@@ -653,7 +629,6 @@
             )}
           </div>
 
-          {/* 課程費用列表 */}
           <div className="mb-6 bg-white rounded shadow p-4 overflow-auto max-h-48">
             <h2 className="text-xl font-semibold mb-3">課程費用列表</h2>
             {state.courseList.length === 0 ? (
@@ -687,52 +662,52 @@
             )}
           </div>
 
-          {/* 試算結果區 */}
           <div className="flex-grow bg-white rounded shadow p-4 overflow-x-auto">
             <h2 className="text-xl font-semibold mb-3">試算結果</h2>
             {state.calculationResult ? (
-              (() => {
-                const { headers, rows } = parseResultToTable(state.calculationResult);
-                if (headers.length === 0 && rows.length === 0) {
-                  return <p className="text-gray-500">無試算結果，請先執行計算。</p>;
-                }
-                return (
-                  <table className="w-full text-sm text-left border-collapse">
-                    <thead className="bg-gray-100 sticky top-0">
-                      <tr>
-                        {headers.map((header, index) => (
-                          <th key={index} className="p-3 font-semibold border-b border-gray-200 whitespace-nowrap">
-                            {header}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map((row, rowIndex) => (
-                        <tr
-                          key={rowIndex}
-                          className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
-                        >
-                          {row.map((cell, cellIndex) => (
-                            <td
-                              key={cellIndex}
-                              className="p-3 border-b border-gray-200 whitespace-nowrap"
-                            >
-                              {cell}
-                            </td>
+              <div>
+                {(() => {
+                  const { headers, rows } = parseResultToTable(state.calculationResult);
+                  if (headers.length === 0 && rows.length === 0) {
+                    return <p className="text-gray-500">無有效試算結果，請檢查輸入數據或重新計算。</p>;
+                  }
+                  return (
+                    <table className="w-full text-sm text-left border-collapse" aria-label="試算結果表格">
+                      <thead className="bg-gray-100 sticky top-0">
+                        <tr>
+                          {headers.map((header, index) => (
+                            <th key={index} className="p-3 font-semibold border-b border-gray-200 whitespace-nowrap min-w-[100px]">
+                              {header}
+                            </th>
                           ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                );
-              })()
+                      </thead>
+                      <tbody>
+                        {rows.map((row, rowIndex) => (
+                          <tr
+                            key={rowIndex}
+                            className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
+                          >
+                            {row.map((cell, cellIndex) => (
+                              <td
+                                key={cellIndex}
+                                className="p-3 border-b border-gray-200 whitespace-nowrap min-w-[100px]"
+                              >
+                                {cell}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  );
+                })()}
+              </div>
             ) : (
               <p className="text-gray-500">無試算結果，請先執行計算。</p>
             )}
           </div>
 
-          {/* Modal */}
           <ModalContent />
         </div>
       );
