@@ -1,1199 +1,658 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3023489511713645"
-    crossorigin="anonymous"></script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>💰 超級還款試算表 - 專業版</title>
 
+  <!-- React & ReactDOM -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+  <!-- Babel for JSX in browser -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.20.12/babel.min.js"></script>
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <style>
-    /* Ensure html and body take full height */
     html, body {
       height: 100%;
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
+      background-color: #f0f4f8;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
     }
-    /* Set min-height for the root React element to be full screen, and use flexbox */
     #root {
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-      background-color: #f4f7fa;
+      position: relative;
+      padding-bottom: 4rem; /* 留給固定footer空間 */
     }
-    /* Main content grows to push footer down */
-    .main-content {
-      flex-grow: 1;
-    }
-    .modal {
+    /* fixed footer */
+    footer {
       position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.6);
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      bottom: 0; left: 0; right: 0;
+      background: #1f2937; /* Tailwind gray-800 */
+      color: #d1d5db; /* Tailwind gray-300 */
+      padding: 0.75rem 1rem;
+      box-shadow: inset 0 1px 0 rgba(255 255 255 / 0.1);
+      font-size: 0.875rem; /* text-sm */
       z-index: 1000;
     }
-    .modal-content {
-      background: white;
-      padding: 24px;
-      border-radius: 12px;
-      width: 90%;
-      max-width: 400px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    footer a {
+      color: #9ca3af; /* Tailwind gray-400 */
+      text-decoration: none;
+      margin: 0 1rem;
+      transition: color 0.2s ease-in-out;
     }
-    .container {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      padding: 24px;
-      margin: 16px auto;
+    footer a:hover {
+      color: #f9fafb; /* Tailwind gray-50 */
+      text-decoration: underline;
     }
-    .btn {
-      transition: all 0.2s ease-in-out;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    .btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-    table {
-      border-collapse: separate;
-      border-spacing: 0;
-    }
-    th, td {
-      border: 1px solid #e5e7eb;
-    }
-    /* Sticky header for tables */
-    .sticky-header {
-      position: sticky;
-      top: 0;
-      background-color: #f9fafb;
-      z-index: 10;
-    }
-    /* Footer styles */
-    footer {
-      margin-top: auto;
-      background: #ffffff;
-      border-top: 1px solid #e5e7eb;
-      padding: 16px 0;
-      text-align: center;
-      padding-bottom: 60px; /* Reduced space for cookie banner */
-    }
-    /* Cookie banner adjustments */
-    #cookie-banner {
-      z-index: 100; /* Below modal but above content */
-    }
-    /* Responsive adjustments */
-    @media (max-width: 640px) {
-      footer {
-        padding-bottom: 80px; /* Slightly more space for mobile */
-      }
-      #cookie-banner {
-        flex-direction: column;
-        gap: 8px;
-      }
+    /* Scrollbar for table overflow */
+    .table-container {
+      overflow-x: auto;
     }
   </style>
-
-  <meta name="google-site-verification" content="BCvXzgcedvqCehBvT5sfZjBzHe56ld3ft6gNTqERsyE" />
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-WGEGPPKK5D"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    gtag('js', new Date());
-    gtag('consent', 'default', {
-      ad_storage: 'denied',
-      analytics_storage: 'denied'
-    });
-    gtag('config', 'G-WGEGPPKK5D');
-  </script>
 </head>
 <body>
   <div id="root"></div>
-  <div id="cookie-banner" style="
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: #f8f8f8;
-    padding: 16px;
-    box-shadow: 0 -2px 6px rgba(0,0,0,0.15);
-    font-family: sans-serif;
-    font-size: 14px;
-    color: #333;
-    z-index: 100;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-  ">
-    <span style="flex: 1; min-width: 200px; text-align: center;">
-      我們使用 Cookie 改善網站功能與分析流量。請選擇是否接受。
-    </span>
-    <div>
-      <button onclick="acceptCookies()" style="background: #007bff; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer;">
-        接受全部
-      </button>
-      <button onclick="declineCookies()" style="background: #ccc; color: #000; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; margin-left: 8px;">
-        僅使用必要
-      </button>
-    </div>
-  </div>
 
-  <script>
-    function acceptCookies() {
-      localStorage.setItem('cookieConsent', 'accepted');
-      if (typeof gtag === 'function') {
-        gtag('consent', 'update', {
-          ad_storage: 'granted',
-          analytics_storage: 'granted'
-        });
-      }
-      document.getElementById('cookie-banner').style.display = 'none';
-    }
-
-    function declineCookies() {
-      localStorage.setItem('cookieConsent', 'declined');
-      if (typeof gtag === 'function') {
-        gtag('consent', 'update', {
-          ad_storage: 'denied',
-          analytics_storage: 'denied'
-        });
-      }
-      document.getElementById('cookie-banner').style.display = 'none';
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-      if (localStorage.getItem('cookieConsent')) {
-        document.getElementById('cookie-banner').style.display = 'none';
-      } else {
-        document.getElementById('cookie-banner').style.display = 'flex';
-      }
-    });
-  </script>
-
-  <script type="text/javascript">
-    // Ensure Babel is loaded before transforming JSX
-    document.addEventListener('DOMContentLoaded', () => {
-      if (typeof Babel !== 'undefined') {
-        console.log("Babel is loaded. Transforming JSX...");
-        Babel.transformScriptTags();
-      } else {
-        console.error("Babel is NOT loaded. JSX transformation will fail.");
-      }
-    });
-  </script>
+  <footer className="footer">
+    <nav className="flex justify-center">
+      <a href="/privacy" target="_blank" rel="noopener noreferrer">隱私權政策</a>
+      <a href="/terms" target="_blank" rel="noopener noreferrer">服務條款</a>
+      <a href="/disclaimer" target="_blank" rel="noopener noreferrer">免責聲明</a>
+      <a href="/contact" target="_blank" rel="noopener noreferrer">聯絡我們</a>
+    </nav>
+  </footer>
 
   <script type="text/babel">
-    console.log("Starting React application...");
 
-    // Error Boundary to catch rendering issues
-    class ErrorBoundary extends React.Component {
-      state = { hasError: false, error: null };
-      static getDerivedStateFromError(error) {
-        console.error("ErrorBoundary caught an error:", error);
-        return { hasError: true, error };
+  // Utility: currency formatter
+  const currencyFormatter = new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD' });
+
+  // ErrorBoundary元件，捕捉子元件錯誤
+  class ErrorBoundary extends React.Component {
+    constructor(props) {
+      super(props);
+      this.state = { hasError: false, error: null };
+    }
+    static getDerivedStateFromError(error) {
+      return { hasError: true, error };
+    }
+    componentDidCatch(error, info) {
+      console.error("ErrorBoundary caught:", error, info);
+    }
+    render() {
+      if (this.state.hasError) {
+        return (
+          <div className="p-8 text-center">
+            <h1 className="text-3xl font-bold text-red-600 mb-4">發生錯誤</h1>
+            <p className="mb-6">請重新整理頁面或聯絡客服。</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              重新整理
+            </button>
+          </div>
+        );
       }
-      componentDidCatch(error, errorInfo) {
-        console.error("Error details:", error, errorInfo);
-      }
-      render() {
-        if (this.state.hasError) {
-          return (
-            <div class="text-center p-8">
-              <h1 class="text-2xl text-red-600 mb-4">應用程式發生錯誤</h1>
-              <p class="text-gray-600 mb-4">請嘗試重新整理頁面或檢查控制台以獲取更多資訊。</p>
-              <button
-                class="btn bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                onClick={() => window.location.reload()}
-              >
-                重新整理
-              </button>
-            </div>
-          );
-        }
-        return this.props.children;
+      return this.props.children;
+    }
+  }
+
+  // 新增還款人表單
+  function AddPersonForm({ onAdd }) {
+    const [name, setName] = React.useState('');
+    const [debt, setDebt] = React.useState('');
+
+    function handleSubmit(e) {
+      e.preventDefault();
+      if (!name.trim()) { alert('姓名不能空白'); return; }
+      if (isNaN(parseFloat(debt)) || parseFloat(debt) <= 0) { alert('欠款金額需大於0'); return; }
+      onAdd(name.trim(), parseFloat(debt));
+      setName('');
+      setDebt('');
+    }
+
+    return (
+      <form onSubmit={handleSubmit} className="mb-4 p-4 bg-white rounded shadow">
+        <h2 className="text-xl font-semibold mb-3">新增還款人</h2>
+        <div className="flex flex-col sm:flex-row gap-4 items-center">
+          <input
+            className="border p-2 rounded flex-grow"
+            placeholder="姓名"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            required
+          />
+          <input
+            type="number"
+            className="border p-2 rounded flex-grow"
+            placeholder="欠款金額 (NT$)"
+            value={debt}
+            onChange={e => setDebt(e.target.value)}
+            required
+            min="0"
+            step="0.01"
+          />
+          <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+            新增
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  // 新增課程表單
+  function AddCourseForm({ onAdd }) {
+    const [fee, setFee] = React.useState('');
+    const [months, setMonths] = React.useState('');
+
+    function handleSubmit(e) {
+      e.preventDefault();
+      if (isNaN(parseFloat(fee)) || parseFloat(fee) <= 0) { alert('課程費用需大於0'); return; }
+      if (!Number.isInteger(Number(months)) || Number(months) <= 0) { alert('課程期數需為大於0整數'); return; }
+      onAdd(parseFloat(fee), parseInt(months));
+      setFee('');
+      setMonths('');
+    }
+
+    return (
+      <form onSubmit={handleSubmit} className="mb-4 p-4 bg-white rounded shadow">
+        <h2 className="text-xl font-semibold mb-3">新增課程</h2>
+        <div className="flex flex-col sm:flex-row gap-4 items-center">
+          <input
+            type="number"
+            className="border p-2 rounded flex-grow"
+            placeholder="課程總費用 (NT$)"
+            value={fee}
+            onChange={e => setFee(e.target.value)}
+            min="0"
+            step="0.01"
+            required
+          />
+          <input
+            type="number"
+            className="border p-2 rounded flex-grow"
+            placeholder="期數"
+            value={months}
+            onChange={e => setMonths(e.target.value)}
+            min="1"
+            required
+          />
+          <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            新增
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  // 還款人列表
+  function RepayList({ list, onRemove }) {
+    return (
+      <div className="mb-6 p-4 bg-white rounded shadow">
+        <h2 className="text-xl font-semibold mb-3">還款人列表</h2>
+        <div className="table-container max-h-96 overflow-auto">
+          <table className="min-w-full border border-gray-300">
+            <thead className="bg-gray-100 sticky top-0">
+              <tr>
+                <th className="border px-4 py-2">姓名</th>
+                <th className="border px-4 py-2">欠款金額 (NT$)</th>
+                <th className="border px-4 py-2">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {list.length === 0 && (
+                <tr><td colSpan="3" className="text-center p-4 text-gray-500">尚無資料</td></tr>
+              )}
+              {list.map((p, i) => (
+                <tr key={i} className="hover:bg-gray-50">
+                  <td className="border px-4 py-2">{p.name}</td>
+                  <td className="border px-4 py-2">{currencyFormatter.format(p.debt)}</td>
+                  <td className="border px-4 py-2 text-center">
+                    <button
+                      onClick={() => onRemove(i)}
+                      className="text-red-600 hover:text-red-800"
+                      title="移除"
+                    >❌</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  // 課程列表
+  function CourseList({ list, onRemove }) {
+    return (
+      <div className="mb-6 p-4 bg-white rounded shadow">
+        <h2 className="text-xl font-semibold mb-3">課程列表</h2>
+        <div className="table-container max-h-80 overflow-auto">
+          <table className="min-w-full border border-gray-300">
+            <thead className="bg-gray-100 sticky top-0">
+              <tr>
+                <th className="border px-4 py-2">課程費用 (NT$)</th>
+                <th className="border px-4 py-2">期數</th>
+                <th className="border px-4 py-2">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {list.length === 0 && (
+                <tr><td colSpan="3" className="text-center p-4 text-gray-500">尚無資料</td></tr>
+              )}
+              {list.map((c, i) => (
+                <tr key={i} className="hover:bg-gray-50">
+                  <td className="border px-4 py-2">{currencyFormatter.format(c.fee)}</td>
+                  <td className="border px-4 py-2 text-center">{c.months}</td>
+                  <td className="border px-4 py-2 text-center">
+                    <button
+                      onClick={() => onRemove(i)}
+                      className="text-red-600 hover:text-red-800"
+                      title="移除"
+                    >❌</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  // 薪資與生活費設定表單
+  function SalaryExpenseForm({ salary, livingExpense, startMonth, onSetSalary, onSetExpense, onSetMonth }) {
+    const [salaryInput, setSalaryInput] = React.useState(salary);
+    const [expenseInput, setExpenseInput] = React.useState(livingExpense);
+    const [monthInput, setMonthInput] = React.useState(startMonth);
+
+    React.useEffect(() => { setSalaryInput(salary); }, [salary]);
+    React.useEffect(() => { setExpenseInput(livingExpense); }, [livingExpense]);
+    React.useEffect(() => { setMonthInput(startMonth); }, [startMonth]);
+
+    function onSalaryBlur() {
+      onSetSalary(parseFloat(salaryInput));
+    }
+    function onExpenseBlur() {
+      onSetExpense(parseFloat(expenseInput));
+    }
+    function onMonthBlur() {
+      const m = parseInt(monthInput);
+      if (m >= 1 && m <= 12) {
+        onSetMonth(m);
+      } else {
+        alert("起始月份必須是1~12");
+        setMonthInput(startMonth);
       }
     }
 
-    function App() {
-      console.log("App component rendering...");
+    return (
+      <div className="mb-6 p-4 bg-white rounded shadow grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <label className="block font-semibold mb-1">薪資 (NT$)</label>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            className="border p-2 rounded w-full"
+            value={salaryInput}
+            onChange={e => setSalaryInput(e.target.value)}
+            onBlur={onSalaryBlur}
+          />
+        </div>
+        <div>
+          <label className="block font-semibold mb-1">生活費 (NT$)</label>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            className="border p-2 rounded w-full"
+            value={expenseInput}
+            onChange={e => setExpenseInput(e.target.value)}
+            onBlur={onExpenseBlur}
+          />
+        </div>
+        <div>
+          <label className="block font-semibold mb-1">起始月份</label>
+          <input
+            type="number"
+            min="1"
+            max="12"
+            className="border p-2 rounded w-full"
+            value={monthInput}
+            onChange={e => setMonthInput(e.target.value)}
+            onBlur={onMonthBlur}
+          />
+        </div>
+      </div>
+    );
+  }
 
-      const getInitialState = () => ({
-        salary: 0,
-        livingExpense: 0,
-        startMonth: 1,
-        repayList: [],
-        courseList: [],
-        calculationResult: '',
-        modalType: null
-      });
+  // 試算結果顯示與複製匯出區塊
+  function ResultPanel({ result, onCopy, onExportCsv }) {
+    // 將試算結果（字串或JSON）解析成表格顯示
+    const [tableData, setTableData] = React.useState({ headers: [], rows: [] });
 
-      const [state, setState] = React.useState(getInitialState);
-
-      // Mock state for testing when backend is unavailable
-      const mockState = {
-        salary: 30000,
-        livingExpense: 5000,
-        startMonth: 1,
-        repayList: [{ name: "測試用戶", debt: 10000 }],
-        courseList: [{ fee: 30000, months: 6 }]
-      };
-
-      React.useEffect(() => {
-        console.log("Fetching current state...");
-        fetchCurrentState();
-      }, []);
-
-      const fetchCurrentState = async () => {
-        try {
-          const response = await fetch('/api/get_current_state');
-          if (response.ok) {
-            const data = await response.json();
-            console.log("Fetched state:", data);
-            setState(prev => ({
-              ...prev,
-              salary: data.salary || 0,
-              livingExpense: data.living_expense || 0,
-              startMonth: data.start_month || 1,
-              repayList: data.repay_list || [],
-              courseList: data.course_list || []
-            }));
-          } else {
-            console.warn("API unavailable, using mock state for UI display.");
-            setState(prev => ({ ...prev, ...mockState }));
-          }
-        } catch (error) {
-          console.warn("Error fetching state, using mock state:", error);
-          setState(prev => ({ ...prev, ...mockState }));
-        }
-      };
-
-      const openModal = (type) => {
-        setState(prev => ({ ...prev, modalType: type }));
-      };
-
-      const closeModal = () => {
-        setState(prev => ({ ...prev, modalType: null }));
-      };
-
-      const addPerson = async (name, debt) => {
-        if (!name.trim()) {
-          alert("姓名不能為空");
-          return false;
-        }
-        if (isNaN(parseFloat(debt)) || parseFloat(debt) <= 0) {
-          alert("欠款金額必須大於0");
-          return false;
-        }
-        console.log("Adding person:", { name, debt });
-        try {
-          const response = await fetch('/api/add_person', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: name.trim(), debt: parseFloat(debt) })
-          });
-          const data = await response.json();
-          if (response.ok && data.status === 'success') {
-            await fetchCurrentState();
-            return true;
-          } else {
-            alert("新增還款人失敗: " + (data.message || response.statusText));
-            return false;
-          }
-        } catch (error) {
-          console.error('Error adding person:', error);
-          alert('新增還款人時發生網路錯誤或伺服器問題。');
-          return false;
-        }
-      };
-
-      const addCourse = async (fee, months) => {
-        if (isNaN(parseFloat(fee)) || parseFloat(fee) <= 0) {
-          alert("課程總費用必須大於0");
-          return false;
-        }
-        if (!Number.isInteger(parseInt(months)) || parseInt(months) <= 0) {
-          alert("課程期數必須是大於0的整數");
-          return false;
-        }
-        console.log("Adding course:", { fee, months });
-        try {
-          const response = await fetch('/api/add_course', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fee: parseFloat(fee), months: parseInt(months) })
-          });
-          const data = await response.json();
-          if (response.ok && data.status === 'success') {
-            await fetchCurrentState();
-            return true;
-          } else {
-            alert("新增課程失敗: " + (data.message || response.statusText));
-            return false;
-          }
-        } catch (error) {
-          console.error('Error adding course:', error);
-          alert('新增課程時發生網路錯誤或伺服器問題。');
-          return false;
-        }
-      };
-
-      const setSalary = async (salary) => {
-        if (isNaN(parseFloat(salary)) || parseFloat(salary) < 0) {
-          alert("薪水必須是非負數");
-          return false;
-        }
-        console.log("Setting salary:", salary);
-        try {
-          const response = await fetch('/api/set_salary', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ salary: parseFloat(salary) })
-          });
-          const data = await response.json();
-          if (response.ok && data.status === 'success') {
-            await fetchCurrentState();
-            return true;
-          } else {
-            alert("設定薪水失敗: " + (data.message || response.statusText));
-            return false;
-          }
-        } catch (error) {
-          console.error('Error setting salary:', error);
-          alert('設定薪水時發生網路錯誤或伺服器問題。');
-          return false;
-        }
-      };
-
-      const setLivingExpense = async (expense) => {
-        if (isNaN(parseFloat(expense)) || parseFloat(expense) < 0) {
-          alert("生活費必須是非負數");
-          return false;
-        }
-        console.log("Setting living expense:", expense);
-        try {
-          const response = await fetch('/api/set_living_expense', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ expense: parseFloat(expense) })
-          });
-          const data = await response.json();
-          if (response.ok && data.status === 'success') {
-            await fetchCurrentState();
-            return true;
-          } else {
-            alert("設定生活費失敗: " + (data.message || response.statusText));
-            return false;
-          }
-        } catch (error) {
-          console.error('Error setting living expense:', error);
-          alert('設定生活費時發生網路錯誤或伺服器問題。');
-          return false;
-        }
-      };
-
-      const setStartMonth = async (month) => {
-        const monthInt = parseInt(month);
-        if (!Number.isInteger(monthInt) || monthInt < 1 || monthInt > 12) {
-          alert("起始月份必須介於1到12");
-          return false;
-        }
-        console.log("Setting start month:", monthInt);
-        try {
-          const response = await fetch('/api/set_start_month', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ start_month: monthInt })
-          });
-          const data = await response.json();
-          if (response.ok && data.status === 'success') {
-            await fetchCurrentState();
-            return true;
-          } else {
-            alert("設定起始月份失敗: " + (data.message || response.statusText));
-            return false;
-          }
-        } catch (error) {
-          console.error('Error setting start month:', error);
-          alert('設定起始月份時發生網路錯誤或伺服器問題。');
-          return false;
-        }
-      };
-
-      const removePerson = (index) => {
-        console.log("Removing person at index:", index);
-        if (!confirm(`確定要從前端列表中移除還款人「${state.repayList[index].name}」嗎？\n(注意：此操作不會同步清除後端數據，如需徹底清除請使用「清空資料」)`)) return;
-        const newList = [...state.repayList];
-        newList.splice(index, 1);
-        setState(prev => ({ ...prev, repayList: newList }));
-      };
-
-      const removeCourse = (index) => {
-        console.log("Removing course at index:", index);
-        if (!confirm(`確定要從前端列表中移除課程 #${index + 1} 嗎？\n(注意：此操作不會同步清除後端數據，如需徹底清除請使用「清空資料」)`)) return;
-        const newList = [...state.courseList];
-        newList.splice(index, 1);
-        setState(prev => ({ ...prev, courseList: newList }));
-      };
-
-      const calculate = async () => {
-        console.log("Calculating repayment plan...");
-        try {
-          const response = await fetch('/api/calculate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({})
-          });
-          const data = await response.json();
-          console.log('API response for calculate:', data);
-          if (response.ok && data.status === 'success') {
-            setState(prev => ({ ...prev, calculationResult: data.result }));
-          } else {
-            alert("計算失敗: " + (data.message || response.statusText));
-            setState(prev => ({ ...prev, calculationResult: `錯誤: ${data.message || response.statusText}` }));
-          }
-        } catch (error) {
-          console.error('Error during calculation:', error);
-          alert('計算時發生網路錯誤或伺服器問題。');
-          setState(prev => ({ ...prev, calculationResult: `發生錯誤，請檢查網路連線或伺服器。` }));
-        }
-      };
-
-      const copyResult = async () => {
-        console.log("Copying result...");
-        try {
-          if (state.calculationResult) {
-            await navigator.clipboard.writeText(state.calculationResult);
-            alert('試算結果已複製到剪貼簿！');
-          } else {
-            alert('沒有試算結果可供複製。');
-          }
-        } catch (err) {
-          console.error('複製失敗:', err);
-          alert('無法複製到剪貼簿，請手動選取文字複製。');
-        }
-      };
-
-      const exportCsv = async () => {
-        console.log("Exporting CSV...");
-        try {
-          const response = await fetch('/api/export_csv', {
-            method: 'GET'
-          });
-          if (response.ok) {
-            const contentDisposition = response.headers.get('Content-Disposition');
-            let filename = 'repay_result.csv';
-            if (contentDisposition && contentDisposition.includes('filename=')) {
-              filename = contentDisposition.split('filename=')[1].trim().replace(/"/g, '');
-            }
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-            alert("CSV 檔案已成功下載。");
-          } else {
-            const errorData = await response.json().catch(() => ({ message: response.statusText }));
-            alert("匯出CSV失敗: " + (errorData.message || response.statusText));
-          }
-        } catch (error) {
-          console.error('Error exporting CSV:', error);
-          alert('匯出CSV時發生網路錯誤或伺服器問題。');
-        }
-      };
-
-      const clearAll = async () => {
-        console.log("Clearing all data...");
-        if (!confirm('確定要清空所有設定和結果嗎？這將重置所有後端數據。')) return;
-        try {
-          const response = await fetch('/api/reset', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({})
-          });
-          const data = await response.json();
-          if (response.ok && data.status === 'success') {
-            await fetchCurrentState();
-            setState(prev => ({ ...prev, calculationResult: '' }));
-            alert(data.message);
-          } else {
-            alert("清空資料失敗: " + (data.message || response.statusText));
-          }
-        } catch (error) {
-          console.error('Error clearing data:', error);
-          alert('清空資料時發生網路錯誤或伺服器問題。');
-        }
-      };
-
-      const exitApp = () => {
-        if (confirm('確定離開？')) {
-          window.location.href = 'about:blank';
-        }
-      };
-
-      const parseResultToTable = (result) => {
-        if (!result || result.trim() === '') {
-          console.log('calculationResult is empty or invalid');
-          return { headers: [], rows: [] };
-        }
-        try {
-          const data = JSON.parse(result);
-          console.log('Parsed as JSON:', data);
-          return {
-            headers: data.headers || [],
-            rows: data.rows || []
-          };
-        } catch (jsonError) {
-          console.log('Not JSON, trying tab-separated:', jsonError);
-          const lines = result.trim().split('\n');
-          const headers = lines[0].split('\t').map(h => h.trim());
-          const rows = lines.slice(1).map(line => line.split('\t').map(cell => cell.trim()));
-          console.log('Parsed headers:', headers);
-          console.log('Parsed rows:', rows);
-          return { headers, rows };
-        }
-      };
-
-      const prepareOverallDebtChartData = (repayList) => {
-        const labels = repayList.map(person => person.name);
-        const values = repayList.map(person => person.debt);
-        return { labels, values };
-      };
-
-      React.useEffect(() => {
-        console.log("Chart useEffect triggered.");
-        const canvas = document.getElementById('overall-debt-chart');
-        if (!canvas) {
-          console.warn("Chart canvas element not found.");
+    React.useEffect(() => {
+      if (!result) {
+        setTableData({ headers: [], rows: [] });
+        return;
+      }
+      // 嘗試解析JSON
+      try {
+        const parsed = JSON.parse(result);
+        if (parsed.headers && parsed.rows) {
+          setTableData(parsed);
           return;
         }
+      } catch {}
 
-        const existingChart = Chart.getChart(canvas);
-        if (existingChart) {
-          existingChart.destroy();
-          console.log("Destroyed existing chart.");
-        }
+      // 嘗試用Tab分隔字串拆表
+      const lines = result.trim().split('\n');
+      if (lines.length > 1) {
+        const headers = lines[0].split('\t').map(h => h.trim());
+        const rows = lines.slice(1).map(l => l.split('\t').map(cell => cell.trim()));
+        setTableData({ headers, rows });
+      }
+    }, [result]);
 
-        const { labels, values } = prepareOverallDebtChartData(state.repayList);
-
-        if (values.length > 0 && values.some(val => val > 0)) {
-          console.log("Creating new chart with data:", { labels, values });
-          new Chart(canvas, {
-            type: 'pie',
-            data: {
-              labels: labels,
-              datasets: [{
-                data: values,
-                backgroundColor: [
-                  '#3b82f6',
-                  '#10b981',
-                  '#ef4444',
-                  '#f59e0b',
-                  '#8b5cf6',
-                  '#06b6d4',
-                  '#db2777',
-                  '#6d28d9',
-                  '#ca8a04',
-                  '#4ade80'
-                ],
-                hoverOffset: 8
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: {
-                  position: 'right',
-                  labels: {
-                    font: { size: 14 },
-                    boxWidth: 20
-                  }
-                },
-                title: {
-                  display: true,
-                  text: '總欠款分佈',
-                  font: { size: 20, weight: 'bold' },
-                  padding: { bottom: 20 }
-                },
-                tooltip: {
-                  callbacks: {
-                    label: function(context) {
-                      let label = context.label || '';
-                      if (label) {
-                        label += ': ';
-                      }
-                      if (context.parsed !== null) {
-                        label += new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD' }).format(context.parsed);
-                      }
-                      return label;
-                    }
-                  }
-                }
-              }
-            }
-          });
-        } else {
-          console.log("No valid data for chart, skipping chart creation.");
-        }
-      }, [state.repayList]);
-
-      const ModalContent = () => {
-        if (!state.modalType) return null;
-        let input1Ref = React.useRef(null);
-        let input2Ref = React.useRef(null);
-
-        const handleSubmit = async () => {
-          let success = false;
-          switch (state.modalType) {
-            case 'addPerson':
-              success = await addPerson(input1Ref.current.value, input2Ref.current.value);
-              break;
-            case 'addCourse':
-              success = await addCourse(input1Ref.current.value, input2Ref.current.value);
-              break;
-            case 'setSalary':
-              success = await setSalary(input1Ref.current.value);
-              break;
-            case 'setLivingExpense':
-              success = await setLivingExpense(input1Ref.current.value);
-              break;
-            case 'setStartMonth':
-              success = await setStartMonth(input1Ref.current.value);
-              break;
-            default:
-              closeModal();
-              return;
-          }
-          if (success) closeModal();
-        };
-
-        let title = '', label1 = '', label2 = '', placeholder1 = '', placeholder2 = '', showInput2 = true, input1Type = 'text', input2Type = 'number';
-        switch (state.modalType) {
-          case 'addPerson':
-            title = '🎀 新增還款人';
-            label1 = '姓名';
-            label2 = '欠款金額 (元)';
-            placeholder1 = '例如：小明';
-            placeholder2 = '例如：10000';
-            break;
-          case 'addCourse':
-            title = '🎀 新增課程費用';
-            label1 = '課程總費用 (元)';
-            label2 = '期數（月）';
-            placeholder1 = '例如：30000';
-            placeholder2 = '例如：6';
-            break;
-          case 'setSalary':
-            title = '💰 設定薪水';
-            label1 = '薪水 (元)';
-            placeholder1 = '例如：34000';
-            showInput2 = false;
-            input1Type = 'number';
-            break;
-          case 'setLivingExpense':
-            title = '🍀 設定生活費';
-            label1 = '生活費 (元)';
-            placeholder1 = '例如：5000';
-            showInput2 = false;
-            input1Type = 'number';
-            break;
-          case 'setStartMonth':
-            title = '📅 設定起始月份';
-            label1 = '起始月份 (1~12)';
-            placeholder1 = '例如：1';
-            showInput2 = false;
-            input1Type = 'number';
-            break;
-          default:
-            return null;
-        }
-
-        return (
-          <div class="modal" onClick={closeModal}>
-            <div class="modal-content" onClick={e => e.stopPropagation()}>
-              <h2 class="text-2xl font-semibold mb-6 text-gray-800">{title}</h2>
-              <div class="mb-4">
-                <label class="block mb-2 text-sm font-medium text-gray-700">{label1}:</label>
-                <input
-                  type={input1Type}
-                  ref={input1Ref}
-                  placeholder={placeholder1}
-                  class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  autoFocus
-                  defaultValue={
-                    state.modalType === 'setSalary' ? state.salary :
-                    state.modalType === 'setLivingExpense' ? state.livingExpense :
-                    state.modalType === 'setStartMonth' ? state.startMonth : ''
-                  }
-                />
-              </div>
-              {showInput2 && (
-                <div class="mb-4">
-                  <label class="block mb-2 text-sm font-medium text-gray-700">{label2}:</label>
-                  <input
-                    type={input2Type}
-                    ref={input2Ref}
-                    placeholder={placeholder2}
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              )}
-              <div class="flex justify-end space-x-3">
-                <button
-                  class="btn bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg"
-                  onClick={closeModal}
-                >
-                  取消
-                </button>
-                <button
-                  class="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
-                  onClick={handleSubmit}
-                >
-                  確定
-                </button>
-              </div>
+    return (
+      <div className="mb-6 p-4 bg-white rounded shadow">
+        <h2 className="text-xl font-semibold mb-3">試算結果</h2>
+        {result ? (
+          <>
+            <div className="table-container max-h-80 overflow-auto mb-4">
+              <table className="min-w-full border border-gray-300">
+                <thead className="bg-gray-100 sticky top-0">
+                  <tr>
+                    {tableData.headers.map((h, i) => (
+                      <th key={i} className="border px-4 py-2 text-left">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableData.rows.map((row, rIdx) => (
+                    <tr key={rIdx} className={rIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      {row.map((cell, cIdx) => (
+                        <td key={cIdx} className="border px-4 py-2">{cell}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
-        );
-      };
-
-      return (
-        <div class="main-content">
-          <div class="container max-w-4xl mx-auto">
-            <h1 class="text-3xl font-bold mb-8 text-center text-gray-800">💰 超級還款試算表</h1>
-
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-8">
-              <button class="btn bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700" onClick={() => openModal('setSalary')} title="設定薪水">
-                薪水：{state.salary.toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-              </button>
-              <button class="btn bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700" onClick={() => openModal('setLivingExpense')} title="設定生活費">
-                生活費：{state.livingExpense.toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-              </button>
-              <button class="btn bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700" onClick={() => openModal('setStartMonth')} title="設定起始月份">
-                起始月：{state.startMonth}
-              </button>
-              <button class="btn bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700" onClick={() => openModal('addPerson')} title="新增還款人">
-                新增還款人
-              </button>
-              <button class="btn bg-pink-600 text-white px-4 py-2 rounded-lg hover:bg-pink-700" onClick={() => openModal('addCourse')} title="新增課程費用">
-                新增課程費用
-              </button>
-              <button class="btn bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700" onClick={calculate} title="開始計算">
-                計算試算
-              </button>
-              <button class="btn bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600" onClick={copyResult} title="複製試算結果">
+            <div className="flex gap-4 justify-end">
+              <button
+                onClick={onCopy}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
                 複製結果
               </button>
-              <button class="btn bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700" onClick={exportCsv} title="匯出試算結果CSV">
-                匯出CSV
-              </button>
-              <button class="btn bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700" onClick={clearAll} title="清空所有資料">
-                清空資料
-              </button>
-              <button class="btn bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-800" onClick={exitApp} title="離開網頁">
-                離開
+              <button
+                onClick={onExportCsv}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+              >
+                匯出 CSV
               </button>
             </div>
+          </>
+        ) : (
+          <p className="text-gray-500">尚無試算結果</p>
+        )}
+      </div>
+    );
+  }
 
-            <div class="mb-8 bg-white rounded-lg shadow-sm p-6">
-              <h2 class="text-xl font-semibold mb-4 text-gray-800">還款人列表</h2>
-              {state.repayList.length === 0 ? (
-                <p class="text-gray-500">尚無還款人，請新增。</p>
-              ) : (
-                <>
-                  <div class="overflow-x-auto mb-6">
-                    <table class="w-full text-sm text-left">
-                      <thead class="bg-gray-50 sticky-header">
-                        <tr>
-                          <th class="p-3 font-semibold text-gray-700 border">姓名</th>
-                          <th class="p-3 font-semibold text-gray-700 border">欠款金額 (元)</th>
-                          <th class="p-3 font-semibold text-gray-700 border">操作</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {state.repayList.map((p, i) => (
-                          <tr key={i} class="border-b hover:bg-gray-50">
-                            <td class="p-3 border">{p.name}</td>
-                            <td class="p-3 border">{p.debt.toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
-                            <td class="p-3 border">
-                              <button
-                                class="text-red-600 hover:text-red-800 font-medium"
-                                onClick={() => removePerson(i)}
-                              >
-                                刪除
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div class="mt-6 p-4 border border-gray-200 rounded-lg bg-gray-50 flex justify-center items-center">
-                    <div style={{ height: '300px', width: '100%', maxWidth: '500px' }}>
-                      <canvas id="overall-debt-chart"></canvas>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
+  // Chart元件（顯示總欠款分布圓餅圖）
+  function DebtChart({ repayList }) {
+    const canvasRef = React.useRef(null);
+    React.useEffect(() => {
+      if (!canvasRef.current) return;
 
-            <div class="mb-8 bg-white rounded-lg shadow-sm p-6">
-              <h2 class="text-xl font-semibold mb-4 text-gray-800">課程費用列表</h2>
-              {state.courseList.length === 0 ? (
-                <p class="text-gray-500">尚無課程費用，請新增。</p>
-              ) : (
-                <div class="overflow-x-auto">
-                  <table class="w-full text-sm text-left">
-                    <thead class="bg-gray-50 sticky-header">
-                      <tr>
-                        <th class="p-3 font-semibold text-gray-700 border">總費用 (元)</th>
-                        <th class="p-3 font-semibold text-gray-700 border">期數 (月)</th>
-                        <th class="p-3 font-semibold text-gray-700 border">操作</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {state.courseList.map((c, i) => (
-                        <tr key={i} class="border-b hover:bg-gray-50">
-                          <td class="p-3 border">{c.fee.toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
-                          <td class="p-3 border">{c.months}</td>
-                          <td class="p-3 border">
-                            <button
-                              class="text-red-600 hover:text-red-800 font-medium"
-                              onClick={() => removeCourse(i)}
-                            >
-                              刪除
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
+      const existingChart = Chart.getChart(canvasRef.current);
+      if (existingChart) existingChart.destroy();
 
-            <div class="bg-white rounded-lg shadow-sm p-6 overflow-x-auto">
-              <h2 class="text-xl font-semibold mb-4 text-gray-800">試算結果</h2>
-              {state.calculationResult ? (
-                <div>
-                  {(() => {
-                    const { headers, rows } = parseResultToTable(state.calculationResult);
-                    if (headers.length === 0 && rows.length === 0) {
-                      return <p class="text-gray-500">無有效試算結果，請檢查輸入數據或重新計算。</p>;
-                    }
-                    return (
-                      <table class="w-full text-sm text-left" aria-label="試算結果表格">
-                        <thead class="bg-gray-50 sticky-header">
-                          <tr>
-                            {headers.map((header, index) => (
-                              <th key={index} class="p-3 font-semibold text-gray-700 border min-w-[120px] whitespace-nowrap">
-                                {header}
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {rows.map((row, rowIndex) => (
-                            <tr key={rowIndex} class="border-b hover:bg-gray-50">
-                              {row.map((cell, cellIndex) => (
-                                <td key={cellIndex} class="p-3 border">
-                                  {cellIndex > 0 && headers[cellIndex].includes('(元)')
-                                    ? parseFloat(cell).toLocaleString('zh-TW', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-                                    : cell}
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    );
-                  })()}
-                </div>
-              ) : (
-                <p class="text-gray-500">點擊「計算試算」以查看結果。</p>
-              )}
-            </div>
+      const labels = repayList.map(p => p.name);
+      const dataValues = repayList.map(p => p.debt);
 
-            <ModalContent />
-          </div>
-          <footer class="text-gray-600 text-sm">
-            <div class="container mx-auto px-4 flex flex-col sm:flex-row justify-center items-center gap-4">
-              <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" class="hover:underline text-blue-600">隱私權政策</a>
-              <span class="hidden sm:inline-block">|</span>
-              <a href="/terms-of-service" target="_blank" rel="noopener noreferrer" class="hover:underline text-blue-600">服務條款</a>
-              <span class="hidden sm:inline-block">|</span>
-              <a href="mailto:support@example.com" class="hover:underline text-blue-600">聯絡我們</a>
-            </div>
-            <p class="mt-2 text-center">© 2025 超級還款試算表. All rights reserved.</p>
-          </footer>
-        </div>
-      );
+      if (dataValues.length === 0) return;
+
+      const colors = [
+        '#3b82f6','#10b981','#ef4444','#f59e0b','#8b5cf6',
+        '#06b6d4','#db2777','#6d28d9','#ca8a04','#4ade80'
+      ];
+
+      new Chart(canvasRef.current, {
+        type: 'pie',
+        data: {
+          labels,
+          datasets: [{
+            data: dataValues,
+            backgroundColor: colors.slice(0, labels.length),
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: { enabled: true }
+          }
+        }
+      });
+
+    }, [repayList]);
+
+    return (
+      <div className="mb-6 p-4 bg-white rounded shadow max-w-md mx-auto">
+        <h2 className="text-xl font-semibold mb-3 text-center">欠款分布圓餅圖</h2>
+        {repayList.length === 0 ? (
+          <p className="text-center text-gray-500">尚無還款人資料</p>
+        ) : (
+          <canvas ref={canvasRef}></canvas>
+        )}
+      </div>
+    );
+  }
+
+  // 主App元件
+  function App() {
+    // 狀態管理
+    const [salary, setSalary] = React.useState(0);
+    const [livingExpense, setLivingExpense] = React.useState(5000);
+    const [startMonth, setStartMonth] = React.useState(1);
+
+    const [repayList, setRepayList] = React.useState([]);
+    const [courseList, setCourseList] = React.useState([]);
+
+    const [resultText, setResultText] = React.useState('');
+
+    // 新增還款人
+    function addPerson(name, debt) {
+      setRepayList(prev => [...prev, { name, debt }]);
+    }
+    // 刪除還款人
+    function removePerson(idx) {
+      setRepayList(prev => prev.filter((_, i) => i !== idx));
     }
 
-    // Check for React and ReactDOM before mounting
-    if (typeof React !== 'undefined' && typeof ReactDOM !== 'undefined') {
-      console.log("React and ReactDOM are loaded. Mounting app...");
-      const rootElement = document.getElementById('root');
-      if (rootElement) {
-        ReactDOM.createRoot(rootElement).render(
-          <ErrorBoundary>
-            <App />
-          </ErrorBoundary>
-        );
-        console.log("ReactDOM.createRoot().render() called.");
-      } else {
-        console.error("Error: Div with id 'root' not found! React app cannot mount.");
+    // 新增課程
+    function addCourse(fee, months) {
+      setCourseList(prev => [...prev, { fee, months }]);
+    }
+    // 刪除課程
+    function removeCourse(idx) {
+      setCourseList(prev => prev.filter((_, i) => i !== idx));
+    }
+
+    // 執行試算主邏輯
+    function runCalculation() {
+      // 檢查基本資料
+      if (salary <= 0) {
+        alert("薪資需大於0");
+        return;
       }
-    } else {
-      console.error("Error: React or ReactDOM not loaded. Check CDN links.");
+      if (livingExpense < 0) {
+        alert("生活費不可為負");
+        return;
+      }
+      if (startMonth < 1 || startMonth > 12) {
+        alert("起始月份需介於1~12");
+        return;
+      }
+      if (repayList.length === 0) {
+        alert("請至少新增一個還款人");
+        return;
+      }
+      if (courseList.length === 0) {
+        alert("請至少新增一個課程");
+        return;
+      }
+
+      // 假設邏輯：計算還款總額與時間，簡單試算 (可自行擴充)
+      // 還款月可用薪資扣除生活費，均分給欠款人和課程分期。
+
+      const availablePerMonth = salary - livingExpense;
+      if (availablePerMonth <= 0) {
+        alert("薪資扣除生活費後須大於0");
+        return;
+      }
+
+      // 總欠款與課程總期數計算
+      const totalDebt = repayList.reduce((a, c) => a + c.debt, 0);
+      const totalCourseFee = courseList.reduce((a, c) => a + c.fee, 0);
+      const totalCourseMonths = courseList.reduce((a, c) => a + c.months, 0);
+
+      // 還款人分攤金額比例
+      const repayRatios = repayList.map(p => p.debt / totalDebt);
+
+      // 開始產生試算表（CSV樣式文字）
+      let output = "月份\t還款人\t欠款餘額\t課程分期支出\t可支配金額\n";
+
+      // 簡單邏輯：每月先扣課程分期費用，剩下的可支配金額均分給還款人還款
+      // 課程分期費用 = 各課程費用 / 期數，期數期間內每月繳交，超過期數後0
+      // 欠款餘額每月減少還款金額
+
+      // 初始化欠款餘額
+      let debtsLeft = repayList.map(p => p.debt);
+
+      let monthIdx = startMonth;
+      let year = new Date().getFullYear();
+
+      let maxIter = 240; // 最多試算20年防死循環
+
+      for (let i = 0; i < maxIter; i++) {
+        if (debtsLeft.every(d => d <= 0)) break; // 全部還清
+
+        // 該月課程分期支出
+        let coursePayThisMonth = 0;
+        for (const c of courseList) {
+          if (i < c.months) coursePayThisMonth += c.fee / c.months;
+        }
+
+        // 可支配金額：扣除課程分期後
+        let disposable = availablePerMonth - coursePayThisMonth;
+        if (disposable < 0) disposable = 0;
+
+        // 還款人每人分攤
+        let repayThisMonth = debtsLeft.map((d, idx) => {
+          if (d <= 0) return 0;
+          return Math.min(d, disposable * repayRatios[idx]);
+        });
+
+        // 扣除還款
+        debtsLeft = debtsLeft.map((d, idx) => Math.max(0, d - repayThisMonth[idx]));
+
+        // 計算月份顯示文字
+        let displayMonth = `${year}年${monthIdx}月`;
+
+        // 將每還款人結果輸出
+        for (let j = 0; j < repayList.length; j++) {
+          output += `${displayMonth}\t${repayList[j].name}\t${debtsLeft[j].toFixed(2)}\t${coursePayThisMonth.toFixed(2)}\t${disposable.toFixed(2)}\n`;
+        }
+
+        monthIdx++;
+        if (monthIdx > 12) {
+          monthIdx = 1;
+          year++;
+        }
+      }
+
+      setResultText(output);
     }
+
+    // 複製結果文字到剪貼簿
+    function copyResultToClipboard() {
+      if (!resultText) return;
+      navigator.clipboard.writeText(resultText).then(() => {
+        alert("結果已複製到剪貼簿！");
+      });
+    }
+
+    // 匯出 CSV 檔案
+    function exportCsv() {
+      if (!resultText) return;
+      const blob = new Blob([resultText], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `repay_calculation_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    return (
+      <div className="flex-grow max-w-6xl mx-auto p-4">
+        <h1 className="text-3xl font-bold text-center mb-8">💰 超級還款試算表 - 專業版</h1>
+
+        <SalaryExpenseForm
+          salary={salary}
+          livingExpense={livingExpense}
+          startMonth={startMonth}
+          onSetSalary={setSalary}
+          onSetExpense={setLivingExpense}
+          onSetMonth={setStartMonth}
+        />
+
+        <AddPersonForm onAdd={addPerson} />
+        <RepayList list={repayList} onRemove={removePerson} />
+
+        <AddCourseForm onAdd={addCourse} />
+        <CourseList list={courseList} onRemove={removeCourse} />
+
+        <div className="flex justify-center mb-6">
+          <button
+            onClick={runCalculation}
+            className="bg-purple-700 text-white px-6 py-3 rounded hover:bg-purple-800 transition"
+          >
+            執行試算
+          </button>
+        </div>
+
+        <ResultPanel
+          result={resultText}
+          onCopy={copyResultToClipboard}
+          onExportCsv={exportCsv}
+        />
+
+        <DebtChart repayList={repayList} />
+      </div>
+    );
+  }
+
+  // Render App with ErrorBoundary
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  );
   </script>
 </body>
 </html>
-
-### How Fixes Address "No Display"
-1. **Mock State**: If `/api/get_current_state` fails, the app falls back to `mockState`, ensuring the UI renders with sample data (e.g., salary: 30,000, one debtor, one course). This prevents a blank page when the backend is down.
-2. **Enhanced ErrorBoundary**: The `ErrorBoundary` now shows a user-friendly message with a "重新整理" (Refresh) button, ensuring users see something even if React crashes.
-3. **Babel Timing**: Moved `Babel.transformScriptTags()` to a `DOMContentLoaded` event, ensuring Babel is loaded before JSX transformation.
-4. **Dependency Checks**: Added checks for `React`, `ReactDOM`, and `rootElement` before mounting, logging specific errors if they’re missing.
-5. **Console Logging**: Extensive logs help diagnose issues (e.g., API failures, chart rendering, or JSX errors).
-6. **Footer Visibility**: The footer remains pinned with `margin-top: auto` and reduced `padding-bottom` (60px desktop, 80px mobile) to avoid excessive spacing while accommodating the cookie banner.
-
-### Testing Instructions
-To confirm the UI displays correctly:
-1. **Local Testing**:
-   - Save the code as `index.html`.
-   - Run a local server (e.g., Python’s HTTP server):
-     ```bash
-     python -m http.server 8000
-     ```
-   - Open `http://localhost:8000`. The UI should display with mock data (salary: 30,000, one debtor, one course) even without a backend.
-   - Check the browser console (F12 > Console) for errors like `React is not defined` or `Fetch failed`.
-
-2. **Backend Setup** (if using a server):
-   - Create a Flask backend (`app.py`) with the required endpoints:
-     ```python
-     from flask import Flask, jsonify, request
-     import json
-     app = Flask(__name__)
-     state = {'salary': 0, 'living_expense': 0, 'start_month': 1, 'repay_list': [], 'course_list': []}
-
-     @app.route('/api/get_current_state', methods=['GET'])
-     def get_current_state():
-       return jsonify(state)
-
-     @app.route('/api/add_person', methods=['POST'])
-     def add_person():
-       data = request.json
-       state['repay_list'].append({'name': data['name'], 'debt': data['debt']})
-       return jsonify({'status': 'success'})
-
-     @app.route('/api/add_course', methods=['POST'])
-     def add_course():
-       data = request.json
-       state['course_list'].append({'fee': data['fee'], 'months': data['months']})
-       return jsonify({'status': 'success'})
-
-     @app.route('/api/set_salary', methods=['POST'])
-     def set_salary():
-       data = request.json
-       state['salary'] = data['salary']
-       return jsonify({'status': 'success'})
-
-     @app.route('/api/set_living_expense', methods=['POST'])
-     def set_living_expense():
-       data = request.json
-       state['living_expense'] = data['expense']
-       return jsonify({'status': 'success'})
-
-     @app.route('/api/set_start_month', methods=['POST'])
-     def set_start_month():
-       data = request.json
-       state['start_month'] = data['start_month']
-       return jsonify({'status': 'success'})
-
-     @app.route('/api/calculate', methods=['POST'])
-     def calculate():
-       # Mock calculation result
-       return jsonify({
-         'status': 'success',
-         'result': JSON.stringify({
-           headers: ['月份', '還款金額 (元)'],
-           rows: [['1', '5000'], ['2', '5000']]
-         })
-       })
-
-     @app.route('/api/export_csv', methods=['GET'])
-     def export_csv():
-       return jsonify({'status': 'success', 'message': 'Mock CSV export'})
-
-     @app.route('/api/reset', methods=['POST'])
-     def reset():
-       state.update({'salary': 0, 'living_expense': 0, 'start_month': 1, 'repay_list': [], 'course_list': []})
-       return jsonify({'status': 'success', 'message': 'Data reset'})
-
-     @app.route('/')
-     def serve_index():
-       return send_file('index.html')
-
-     if __name__ == '__main__':
-       app.run(debug=True)
-     ```
-   - Install Flask: `pip install flask`.
-   - Run: `python app.py` and access `http://localhost:5000`.
-
-3. **Verify UI Elements**:
-   - Ensure the title "💰 超級還款試算表" appears.
-   - Check that buttons (e.g., "薪水", "生活費", "新增還款人") are visible and clickable.
-   - Open modals (e.g., click "新增還款人") and verify they display correctly.
-   - Confirm the footer with "隱私權政策" is at the bottom of the page, even with minimal content.
-   - Test the cookie banner: it should appear on first load and hide after clicking "接受全部" or "僅使用必要".
-
-4. **Check Console Logs**:
-   - Open F12 > Console and look for logs like:
-     - "Babel is loaded. Transforming JSX..."
-     - "React and ReactDOM are loaded. Mounting app..."
-     - "App component rendering..."
-   - If you see errors like `React is not defined` or `Babel is NOT loaded`, check your internet connection or CDN availability. As a fallback, download the CDN scripts locally and serve them from your server:
-     ```html
-     <script src="/static/react.production.min.js"></script>
-     <script src="/static/react-dom.production.min.js"></script>
-     <script src="/static/babel.min.js"></script>
-     <script src="/static/chart.umd.min.js"></script>
-     ```
-
-5. **Test Functionality**:
-   - Add a repayment person (e.g., name: "小明", debt: 10000) and verify it appears in the "還款人列表" table and pie chart.
-   - Add a course (e.g., fee: 30000, months: 6) and check the "課程費用列表".
-   - Click "計算試算" to ensure the results table renders (mock data should show if backend is unavailable).
-   - Test "複製結果" and "匯出CSV" buttons, noting that CSV export requires a backend response.
-   - Verify the pie chart updates when adding/removing debtors.
-
-6. **Footer and Cookie Banner**:
-   - Confirm the footer is always at the bottom, with links ("隱私權政策", "服務條款", "聯絡我們") visible.
-   - If `/privacy-policy` or `/terms-of-service` returns a 404, create placeholder pages:
-     ```html
-     <!-- privacy-policy.html -->
-     <!DOCTYPE html>
-     <html lang="zh-TW">
-     <head>
-       <meta charset="UTF-8">
-       <title>隱私權政策</title>
-     </head>
-     <body>
-       <h1>隱私權政策</h1>
-       <p>這裡是隱私權政策內容...</p>
-     </body>
-     </html>
-     ```
-     ```python
-     # In app.py
-     @app.route('/privacy-policy')
-     def privacy_policy():
-       return send_file('privacy-policy.html')
-     @app.route('/terms-of-service')
-     def terms_of_service():
-       return send_file('terms-of-service.html')
-     ```
-
-### Deployment Notes
-To deploy online (e.g., on Render, as discussed previously):
-1. **Project Structure**:
-   ```
-   project/
-   ├── index.html
-   ├── privacy-policy.html
-   ├── terms-of-service.html
-   ├── app.py
-   ├── requirements.txt
-   └── static/
-       ├── react.production.min.js
-       ├── react-dom.production.min.js
-       ├── babel.min.js
-       ├── chart.umd.min.js
-   ```
-   - `requirements.txt`:
-     ```
-     flask==2.3.2
-     gunicorn==20.1.0
-     ```
-
-2. **Deploy to Render**:
-   - Push to a GitHub repository.
-   - Create a Render Web Service, link the repository, and set:
-     - Build Command: `pip install -r requirements.txt`
-     - Start Command: `gunicorn app:app`
-   - Access the app via the Render URL (e.g., `https://your-app.onrender.com`).
-   - Ensure `/privacy-policy` and `/terms-of-service` routes are configured.
-
-3. **Local Fallback**:
-   - If you don’t have a backend yet, the mock state ensures the UI renders. Replace `fetchCurrentState` with actual API calls once the backend is ready.
-
-### Troubleshooting
-If the UI still doesn’t display:
-1. **Check Console Errors**:
-   - Open F12 > Console and report any errors (e.g., `ReferenceError`, `SyntaxError`, or `Fetch failed`).
-   - Common issues:
-     - **CDN Failure**: Use local scripts (download from CDN URLs and place in `/static`).
-     - **CORS Issues**: Ensure the backend allows CORS for your domain:
-       ```python
-       from flask_cors import CORS
-       app = Flask(__name__)
-       CORS(app)
-       ```
-
-2. **Network Tab**:
-   - In F12 > Network, check if scripts (`react.production.min.js`, etc.) load (200 OK). If 403/404, try a different CDN or local files.
-
-3. **Test Without Backend**:
-   - Comment out the `fetch` in `fetchCurrentState` and force the mock state:
-     ```javascript
-     setState(prev => ({ ...prev, ...mockState }));
-     ```
-
-4. **Minimal Test**:
-   - Create a minimal HTML to isolate React rendering:
-     ```html
-     <!DOCTYPE html>
-     <html>
-     <head>
-       <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-       <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-       <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.20.12/babel.min.js"></script>
-     </head>
-     <body>
-       <div id="root"></div>
-       <script type="text/babel">
-         const App = () => <h1>Hello, World!</h1>;
-         ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-       </script>
-     </body>
-     </html>
-     ```
-   - If this doesn’t display "Hello, World!", the issue is with CDN loading or browser settings.
-
-5. **Browser Compatibility**:
-   - Test in Chrome, Firefox, or Edge. Disable ad blockers, as they may block Google Ads or analytics scripts.
-
-If you still see a blank page, please share:
-- Console errors (F12 > Console).
-- Network tab screenshots (F12 > Network).
-- Whether you’re running locally or deployed (e.g., Render URL).
-- Backend status (is `app.py` running, and does `/api/get_current_state` respond?).
-
-This revised code should display the UI with mock data, a pinned footer, and full functionality, even without a backend. Let me know if you need further assistance!
