@@ -89,6 +89,7 @@
           courseList: [],
           calculationResult: '',
           modalType: null,
+          // Removed individual chartData from state as we'll derive it for the single chart
         };
       };
 
@@ -362,7 +363,7 @@
           const data = await response.json();
           if (response.ok && data.status === 'success') {
             await fetchCurrentState();
-            setState(prev => ({ ...prev, calculationResult: '' }));
+            setState(prev => ({ ...prev, calculationResult: '' })); // Only reset calculationResult, not chartData explicitly as it's derived
             alert(data.message);
           } else {
             alert("清空資料失敗: " + (data.message || response.statusText));
@@ -379,67 +380,122 @@
         }
       };
 
+      // Parses the calculation result string into a table format (headers and rows).
+      // It handles both JSON and tab-separated string formats.
       const parseResultToTable = (result) => {
         if (!result || result.trim() === '') {
           console.log('calculationResult is empty or invalid');
-          return { headers: [], rows: [], chartData: [] };
+          return { headers: [], rows: [] };
         }
         try {
           const data = JSON.parse(result);
           console.log('Parsed as JSON:', data);
-          const chartData = data.rows ? data.rows.map(row => ({
-            labels: data.headers.filter((_, i) => !isNaN(parseFloat(row[i]))),
-            values: row.filter(val => !isNaN(parseFloat(val))).map(val => parseFloat(val))
-          })) : [];
           return {
             headers: data.headers || [],
             rows: data.rows || [],
-            chartData
           };
         } catch (jsonError) {
           console.log('Not JSON, trying tab-separated:', jsonError);
           const lines = result.trim().split('\n');
           const headers = lines[0].split('\t').map(h => h.trim());
           const rows = lines.slice(1).map(line => line.split('\t').map(cell => cell.trim()));
-          const chartData = rows.map(row => {
-            const values = row.filter(val => !isNaN(parseFloat(val))).map(val => parseFloat(val));
-            const labels = headers.filter((_, i) => !isNaN(parseFloat(row[i])));
-            return { labels, values };
-          });
           console.log('Parsed headers:', headers);
           console.log('Parsed rows:', rows);
-          console.log('Chart data:', chartData);
-          return { headers, rows, chartData };
+          return { headers, rows };
         }
       };
 
-      // Render pie charts after table mounts
+      // Prepares data for the single overall debt distribution pie chart.
+      // It takes the repayList and extracts names for labels and debts for values.
+      const prepareOverallDebtChartData = (repayList) => {
+        const labels = repayList.map(person => person.name);
+        const values = repayList.map(person => person.debt);
+        return { labels, values };
+      };
+
+      // Effect hook to render the single overall debt distribution pie chart.
+      // This will run whenever the `repayList` state changes.
       React.useEffect(() => {
-        if (!state.calculationResult) return;
-        const { chartData } = parseResultToTable(state.calculationResult);
-        chartData.forEach((data, index) => {
-          const canvas = document.getElementById(`pie-chart-${index}`);
-          if (canvas) {
-            new Chart(canvas, {
-              type: 'pie',
-              data: {
-                labels: data.labels.length ? data.labels : ['無數據'],
-                datasets: [{
-                  data: data.values.length ? data.values : [1],
-                  backgroundColor: ['#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6'],
-                }]
-              },
-              options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: { position: 'bottom' }
+        // Get the canvas element for the chart
+        const canvas = document.getElementById('overall-debt-chart');
+        if (!canvas) return; // Exit if canvas is not available
+
+        // Destroy any existing chart instance on the canvas to prevent re-rendering issues
+        // and memory leaks.
+        const existingChart = Chart.getChart(canvas);
+        if (existingChart) {
+            existingChart.destroy();
+        }
+
+        // Prepare the data for the pie chart using the current repayList
+        const { labels, values } = prepareOverallDebtChartData(state.repayList);
+
+        // Only create the chart if there's actual debt data
+        if (values.length > 0 && values.some(val => val > 0)) {
+          new Chart(canvas, {
+            type: 'pie',
+            data: {
+              labels: labels, // Names of repayers
+              datasets: [{
+                data: values, // Debt amounts
+                backgroundColor: [
+                  '#3b82f6', // Blue-600
+                  '#10b981', // Green-600
+                  '#ef4444', // Red-500
+                  '#f59e0b', // Amber-500
+                  '#8b5cf6', // Violet-500
+                  '#06b6d4', // Cyan-600
+                  '#db2777', // Pink-600
+                  '#6d28d9', // Purple-700
+                  '#ca8a04', // Yellow-600
+                  '#4ade80', // Green-400
+                ],
+                hoverOffset: 8 // Slight offset on hover for better interaction
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false, // Allow canvas to resize based on parent container
+              plugins: {
+                legend: {
+                  position: 'right', // Place legend on the right side
+                  labels: {
+                    font: {
+                      size: 14 // Make legend labels slightly larger
+                    },
+                    boxWidth: 20 // Adjust color box size
+                  }
+                },
+                title: {
+                    display: true,
+                    text: '總欠款分佈', // Title for the overall debt chart
+                    font: {
+                        size: 20, // Larger title font
+                        weight: 'bold'
+                    },
+                    padding: {
+                        bottom: 20
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed !== null) {
+                                label += new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD' }).format(context.parsed);
+                            }
+                            return label;
+                        }
+                    }
                 }
               }
-            });
-          }
-        });
-      }, [state.calculationResult]);
+            }
+          });
+        }
+      }, [state.repayList]); // Dependency array: re-run this effect when repayList changes
 
       const ModalContent = () => {
         if (!state.modalType) return null;
@@ -604,33 +660,41 @@
               {state.repayList.length === 0 ? (
                 <p className="text-gray-500">尚無還款人，請新增。</p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="p-3 font-semibold text-gray-700 border">姓名</th>
-                        <th className="p-3 font-semibold text-gray-700 border">欠款金額 (元)</th>
-                        <th className="p-3 font-semibold text-gray-700 border">操作</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {state.repayList.map((p, i) => (
-                        <tr key={i} className="border-b hover:bg-gray-50">
-                          <td className="p-3 border">{p.name}</td>
-                          <td className="p-3 border">{p.debt.toFixed(2)}</td>
-                          <td className="p-3 border">
-                            <button
-                              className="text-red-600 hover:text-red-800 font-medium"
-                              onClick={() => removePerson(i)}
-                            >
-                              刪除
-                            </button>
-                          </td>
+                <> {/* React Fragment to return multiple elements */}
+                  <div className="overflow-x-auto mb-6">
+                    <table className="w-full text-sm text-left">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="p-3 font-semibold text-gray-700 border">姓名</th>
+                          <th className="p-3 font-semibold text-gray-700 border">欠款金額 (元)</th>
+                          <th className="p-3 font-semibold text-gray-700 border">操作</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody>
+                        {state.repayList.map((p, i) => (
+                          <tr key={i} className="border-b hover:bg-gray-50">
+                            <td className="p-3 border">{p.name}</td>
+                            <td className="p-3 border">{p.debt.toFixed(2)}</td>
+                            <td className="p-3 border">
+                              <button
+                                className="text-red-600 hover:text-red-800 font-medium"
+                                onClick={() => removePerson(i)}
+                              >
+                                刪除
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {/* Single Pie Chart for Total Debt Distribution */}
+                  <div className="mt-6 p-4 border border-gray-200 rounded-lg bg-gray-50 flex justify-center items-center">
+                    <div style={{ height: '300px', width: '100%', maxWidth: '500px' }}> {/* Increased maxWidth for chart */}
+                      <canvas id="overall-debt-chart"></canvas>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
 
@@ -658,7 +722,7 @@
                               className="text-red-600 hover:text-red-800 font-medium"
                               onClick={() => removeCourse(i)}
                             >
-                              刪除
+                                刪除
                             </button>
                           </td>
                         </tr>
@@ -674,7 +738,7 @@
               {state.calculationResult ? (
                 <div>
                   {(() => {
-                    const { headers, rows, chartData } = parseResultToTable(state.calculationResult);
+                    const { headers, rows } = parseResultToTable(state.calculationResult);
                     if (headers.length === 0 && rows.length === 0) {
                       return <p className="text-gray-500">無有效試算結果，請檢查輸入數據或重新計算。</p>;
                     }
@@ -687,7 +751,7 @@
                                 {header}
                               </th>
                             ))}
-                            <th className="p-3 font-semibold text-gray-700 border min-w-[150px] whitespace-nowrap">分佈圖</th>
+                            {/* Removed the "分佈圖" header */}
                           </tr>
                         </thead>
                         <tbody>
@@ -704,14 +768,7 @@
                                   {cell}
                                 </td>
                               ))}
-                              <td className="p-3 border">
-                                <canvas
-                                  id={`pie-chart-${rowIndex}`}
-                                  width="120"
-                                  height="120"
-                                  style={{ maxWidth: '120px', maxHeight: '120px' }}
-                                ></canvas>
-                              </td>
+                              {/* Removed the individual pie chart cell */}
                             </tr>
                           ))}
                         </tbody>
