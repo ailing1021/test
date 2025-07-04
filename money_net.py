@@ -424,7 +424,6 @@ if __name__ == '__main__':
 
     # **新增：啟動每五分鐘使用無頭瀏覽器訪問網頁的後台線程**
     # 這個線程將在後台運行，不會彈出視窗
-    threading.Thread(target=ping_webpage_periodically, args=(5,), daemon=True).start()
     # daemon=True 會讓這個線程在主程式（Flask 應用）結束時自動終止。
 
     # 啟動 Flask server
