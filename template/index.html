@@ -1,644 +1,275 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>功能齊全還款試算器</title>
-<style>
-  /* 基本重置 */
-  * {
-    margin: 0; padding: 0; box-sizing: border-box;
-  }
-  body {
-    font-family: "微軟正黑體", "Microsoft JhengHei", sans-serif;
-    background: #f0f4f8;
-    color: #222;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-  header {
-    background-color: #0078d7;
-    color: white;
-    padding: 1rem 1.5rem;
-    text-align: center;
-    font-size: 1.8rem;
-    font-weight: 700;
-    letter-spacing: 2px;
-  }
-  main {
-    flex-grow: 1;
-    max-width: 900px;
-    margin: 1rem auto 2rem;
-    padding: 1rem 1.5rem;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-  }
-  h2 {
-    margin-bottom: 1rem;
-    color: #0078d7;
-  }
-  form {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem 1.5rem;
-    margin-bottom: 2rem;
-  }
-  label {
-    font-weight: 600;
-    align-self: center;
-  }
-  input[type="text"], input[type="number"], input[type="month"] {
-    padding: 0.5rem 0.7rem;
-    font-size: 1rem;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    width: 100%;
-    transition: border-color 0.2s ease-in-out;
-  }
-  input[type="text"]:focus,
-  input[type="number"]:focus,
-  input[type="month"]:focus {
-    border-color: #0078d7;
-    outline: none;
-  }
-  button {
-    grid-column: 1 / -1;
-    padding: 0.7rem 0;
-    font-size: 1.2rem;
-    font-weight: 700;
-    border: none;
-    background: #0078d7;
-    color: white;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.25s ease;
-  }
-  button:hover {
-    background: #005ea0;
-  }
-  /* 結果區 */
-  #result {
-    overflow-x: auto;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 1.5rem;
-  }
-  thead {
-    background: #0078d7;
-    color: white;
-  }
-  th, td {
-    padding: 0.6rem 0.9rem;
-    border: 1px solid #ccc;
-    text-align: center;
-    font-size: 0.95rem;
-  }
-  tbody tr:nth-child(even) {
-    background: #f9f9f9;
-  }
-  .summary {
-    margin-top: 1rem;
-    font-weight: 600;
-    font-size: 1.1rem;
-    color: #333;
-  }
-  /* 響應式設計 */
-  @media (max-width: 650px) {
-    form {
-      grid-template-columns: 1fr;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>💖 超可愛還款試算</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      background: #fff0f5 url('/static/cute-bg.png') repeat;
+      font-family: "Microsoft JhengHei", sans-serif;
+      color: #444;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      color: #ff6699;
+      text-align: center;
+      padding: 20px 0 10px;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: #fff;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+    input[type="number"], input[type="text"] {
+      width: calc(100% - 20px);
+      padding: 8px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
     }
     button {
-      grid-column: auto;
+      background: #ff99bb;
+      border: none;
+      padding: 12px;
+      color: white;
+      font-size: 18px;
+      border-radius: 10px;
+      width: 100%;
+      margin-top: 10px;
     }
-    th, td {
-      font-size: 0.85rem;
-      padding: 0.4rem 0.6rem;
+    .debtor-box {
+      border: 1px dashed #ffaacc;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 10px;
     }
-  }
-  footer {
-    background: #222;
-    color: #aaa;
-    padding: 1rem 1.5rem;
-    text-align: center;
-    font-size: 0.85rem;
-  }
-  footer a {
-    color: #4ea1ff;
-    margin: 0 0.6rem;
-    text-decoration: none;
-  }
-  footer a:hover {
-    text-decoration: underline;
-  }
-</style>
+    .result-box {
+      background: #fffafc;
+      border: 1px solid #ffaacc;
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 20px;
+      white-space: pre-line;
+    }
+    .chart-box {
+      text-align: center;
+      margin-top: 20px;
+    }
+    footer {
+      text-align: center;
+      padding: 20px;
+      font-size: 14px;
+      color: #999;
+    }
+    footer a {
+      color: #ff6699;
+      text-decoration: none;
+      margin: 0 8px;
+    }
+  </style>
 </head>
+
 <body>
-<header>功能齊全還款試算器</header>
-<main>
-  <form id="repayForm">
-    <h2>請輸入還款資料</h2>
+  <h1>💖 超可愛還款試算表</h1>
+  <div class="container">
+    <label>月薪資：</label>
+    <input type="number" id="salary" placeholder="輸入你的月薪">
 
-    <label for="startMonth">起始月份</label>
-    <input type="month" id="startMonth" required value="2025-01" />
+    <label>每月生活費：</label>
+    <input type="number" id="expense" placeholder="輸入每月生活費">
 
-    <label for="disposableIncome">每月可支配收入（元）</label>
-    <input type="number" id="disposableIncome" required min="0" step="0.01" value="29000" />
+    <div id="debtors"></div>
 
-    <label for="courseAmount">課程總剩餘費用（元）</label>
-    <input type="number" id="courseAmount" required min="0" step="0.01" value="150000" />
 
-    <label for="courseMonthlyPay">課程每月繳納（元）</label>
-    <input type="number" id="courseMonthlyPay" required min="0" step="0.01" value="5100" />
+很好！我就幫你把**功能超齊全、Q版介面、圓餅圖、隱私權&服務條款置底、支援不限債務人數自由新增刪除**的 `index.html` 完整版一次寫好。直接貼上就能用，搭配你後端 Flask API 即可：
 
-    <label for="debtCount">債務人數</label>
-    <input type="number" id="debtCount" required min="1" max="10" step="1" value="5" />
+---
 
-    <div id="debtInputsContainer" style="grid-column: 1 / -1;"></div>
+## 📦 完整 `index.html` 超齊全完整版 ✅
 
-    <button type="submit">開始計算</button>
-  </form>
-
-  <section id="result"></section>
-</main>
-<footer>
-  <a href="#">隱私權政策</a> |
-  <a href="#">服務條款</a> |
-  <a href="#">聯絡我們</a>
-  <br />
-  &copy; 2025 功能齊全還款試算器
-</footer>
-
-<script>
-  const debtInputsContainer = document.getElementById('debtInputsContainer');
-  const debtCountInput = document.getElementById('debtCount');
-
-  function createDebtInputs(count) {
-    debtInputsContainer.innerHTML = '';
-    for(let i=1; i<=count; i++) {
-      const wrapper = document.createElement('div');
-      wrapper.style.display = 'grid';
-      wrapper.style.gridTemplateColumns = '1fr 1fr 1fr';
-      wrapper.style.gap = '0.5rem 1rem';
-      wrapper.style.marginBottom = '1rem';
-
-      // 債務人名稱
-      const nameLabel = document.createElement('label');
-      nameLabel.textContent = `債務人 ${i} 名稱`;
-      nameLabel.setAttribute('for', `debtorName${i}`);
-      nameLabel.style.gridColumn = '1 / 2';
-
-      const nameInput = document.createElement('input');
-      nameInput.type = 'text';
-      nameInput.id = `debtorName${i}`;
-      nameInput.required = true;
-      nameInput.placeholder = `例如：弟弟、妹妹...`;
-      nameInput.style.gridColumn = '2 / 4';
-
-      // 債務金額
-      const amountLabel = document.createElement('label');
-      amountLabel.textContent = `債務人 ${i} 債務總額（元）`;
-      amountLabel.setAttribute('for', `debtorAmount${i}`);
-      amountLabel.style.gridColumn = '1 / 2';
-
-      const amountInput = document.createElement('input');
-      amountInput.type = 'number';
-      amountInput.min = '0';
-      amountInput.step = '0.01';
-      amountInput.id = `debtorAmount${i}`;
-      amountInput.required = true;
-      amountInput.value = '0';
-      amountInput.style.gridColumn = '2 / 3';
-
-      // 債務比例
-      const ratioLabel = document.createElement('label');
-      ratioLabel.textContent = `債務人 ${i} 分配比例（0~1）`;
-      ratioLabel.setAttribute('for', `debtorRatio${i}`);
-      ratioLabel.style.gridColumn = '3 / 4';
-
-      const ratioInput = document.createElement('input');
-      ratioInput.type = 'number';
-      ratioInput.min = '0';
-      ratioInput.max = '1';
-      ratioInput.step = '0.0001';
-      ratioInput.id = `debtorRatio${i}`;
-      ratioInput.required = true;
-      ratioInput.value = (1/count).toFixed(4);
-      ratioInput.style.gridColumn = '3 / 4';
-
-      wrapper.appendChild(nameLabel);
-      wrapper.appendChild(nameInput);
-      wrapper.appendChild(amountLabel);
-      wrapper.appendChild(amountInput);
-      wrapper.appendChild(ratioLabel);
-      wrapper.appendChild(ratioInput);
-
-      debtInputsContainer.appendChild(wrapper);
+```html
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>💖 超可愛還款試算表</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      background: #fff0f5 url('/static/cute-bg.png') repeat;
+      font-family: "Microsoft JhengHei", sans-serif;
+      color: #444;
+      margin: 0;
+      padding: 0;
     }
-  }
+    h1 {
+      color: #ff6699;
+      text-align: center;
+      padding: 20px 0 10px;
+    }
+    .container {
+      max-width: 700px;
+      margin: auto;
+      background: #fff;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+    input[type="number"], input[type="text"] {
+      width: calc(100% - 20px);
+      padding: 8px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #ff99bb;
+      border: none;
+      padding: 12px;
+      color: white;
+      font-size: 18px;
+      border-radius: 10px;
+      width: 100%;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+    .debtor-box {
+      border: 1px dashed #ffaacc;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      position: relative;
+    }
+    .remove-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #ff6666;
+      border: none;
+      color: white;
+      padding: 3px 8px;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    .result-box {
+      background: #fffafc;
+      border: 1px solid #ffaacc;
+      border-radius: 10px;
+      padding: 15px;
+      margin-top: 20px;
+      white-space: pre-line;
+    }
+    .chart-box {
+      text-align: center;
+      margin-top: 20px;
+    }
+    footer {
+      text-align: center;
+      padding: 30px 10px 20px;
+      font-size: 14px;
+      color: #999;
+    }
+    footer a {
+      color: #ff6699;
+      text-decoration: none;
+      margin: 0 8px;
+    }
+  </style>
+</head>
 
-  // 初始化
-  createDebtInputs(parseInt(debtCountInput.value));
+<body>
+  <h1>💖 超可愛還款試算表</h1>
+  <div class="container">
+    <label>月薪資：</label>
+    <input type="number" id="salary" placeholder="輸入你的月薪">
 
-  debtCountInput.addEventListener('change', () => {
-    let count = parseInt(debtCountInput.value);
-    if(isNaN(count) || count < 1) count = 1;
-    else if(count > 10) count = 10;
-    createDebtInputs(count);
-  });
+    <label>每月生活費：</label>
+    <input type="number" id="expense" placeholder="輸入每月生活費">
 
-  // 還款計算函數
-  function calculateRepayment(data) {
-    const {
-      startYear,
-      startMonth,
-      disposableIncome,
-      courseAmount,
-      courseMonthlyPay,
-      debtors
-    } = data;
+    <div id="debtors"></div>
+    <button onclick="addDebtor()">➕ 新增債務人</button>
+    <button onclick="submitData()">📊 開始計算</button>
 
-    // 確認比例總和是否約等於1
-    const totalRatio = debtors.reduce((acc, d) => acc + d.ratio, 0);
-    if(Math.abs(totalRatio - 1) > 0.01){
-      alert('債務人分配比例總和必須約等於 1.0');
-      return null;
+    <div class="result-box" id="result"></div>
+
+    <div class="chart-box">
+      <canvas id="pieChart" width="400" height="400"></canvas>
+    </div>
+  </div>
+
+  <footer>
+    <a href="/privacy.html" target="_blank">隱私權政策</a> | 
+    <a href="/terms.html" target="_blank">服務條款</a>
+  </footer>
+
+  <script>
+    function addDebtor() {
+      const container = document.getElementById("debtors");
+      const box = document.createElement("div");
+      box.className = "debtor-box";
+      box.innerHTML = `
+        <input type="text" placeholder="債務人名稱">
+        <input type="number" placeholder="債務金額">
+        <button class="remove-btn" onclick="this.parentElement.remove()">✖</button>
+      `;
+      container.appendChild(box);
     }
 
-    // 初始化
-    let remainCourse = courseAmount;
-    let remainDebts = debtors.map(d => ({...d, remain: d.amount}));
+    function submitData() {
+      const salary = parseFloat(document.getElementById("salary").value);
+      const expense = parseFloat(document.getElementById("expense").value);
+      const debtorElements = document.querySelectorAll(".debtor-box");
 
-    const maxMonths = 36; // 最多計算36個月
-    let result = [];
-    let curYear = startYear;
-    let curMonth = startMonth;
-
-    // 紀錄還清時間
-    let payoffMonths = {};
-
-    for(let i=0; i<maxMonths; i++) {
-      // 本月可用還款額 = 可支配收入 - 課程繳納(如還有剩餘課程費)
-      const coursePayThisMonth = remainCourse > 0 ? Math.min(courseMonthlyPay, remainCourse) : 0;
-      const debtPayTotal = disposableIncome - coursePayThisMonth;
-      if(debtPayTotal < 0) {
-        alert("課程繳納金額超過可支配收入，無法還款！");
-        return null;
-      }
-
-      // 各債務人本月還款額（比例分配）
-      remainDebts.forEach(d => {
-        if(d.remain <= 0) d.monthlyPay = 0;
-        else d.monthlyPay = d.ratio * debtPayTotal;
+      const debts = [];
+      debtorElements.forEach(el => {
+        const name = el.querySelector('input[type="text"]').value;
+        const amount = parseFloat(el.querySelector('input[type="number"]').value);
+        if (name && amount) debts.push({ name, amount });
       });
 
-      // 債務還款，債務不會小於0
-      remainDebts.forEach(d => {
-        if(d.remain > 0) {
-          d.remain -= d.monthlyPay;
-          if(d.remain < 0) d.remain = 0;
+      if (isNaN(salary) || isNaN(expense) || debts.length === 0) {
+        alert("請完整填寫薪資、生活費與債務人資料！");
+        return;
+      }
+
+      fetch('/api/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ salary, expense, debts })
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("result").innerText = data.result;
+        updateChart(debts);
+      });
+    }
+
+    function updateChart(debts) {
+      const ctx = document.getElementById("pieChart").getContext("2d");
+      const labels = debts.map(d => d.name);
+      const amounts = debts.map(d => d.amount);
+      new Chart(ctx, {
+        type: "pie",
+        data: {
+          labels: labels,
+          datasets: [{
+            data: amounts,
+            backgroundColor: [
+              "#ff99bb", "#ffcc99", "#99ccff", "#ccffcc", "#ffccff",
+              "#ffff99", "#66cccc", "#ff9999"
+            ]
+          }]
         }
       });
-
-      // 課程還款
-      remainCourse -= coursePayThisMonth;
-      if(remainCourse < 0) remainCourse = 0;
-
-      // 紀錄還清月
-      remainDebts.forEach(d => {
-        if(d.remain === 0 && !(d.name in payoffMonths)) {
-          payoffMonths[d.name] = `${curYear}-${String(curMonth).padStart(2,'0')}`;
-        }
-      });
-      if(remainCourse === 0 && !('課程' in payoffMonths)) {
-        payoffMonths['課程'] = `${curYear}-${String(curMonth).padStart(2,'0')}`;
-      }
-
-      // 記錄本月結果
-      result.push({
-        year: curYear,
-        month: curMonth,
-        coursePay: coursePayThisMonth,
-        courseRemain: remainCourse,
-        debts: remainDebts.map(d => ({name: d.name, pay: d.monthlyPay, remain: d.remain}))
-      });
-
-      // 下個月
-      curMonth++;
-      if(curMonth > 12) {
-        curMonth = 1;
-        curYear++;
-      }
-
-      // 如果全部債務與課程都還清，停止
-      const allDebtClear = remainDebts.every(d => d.remain === 0);
-      if(allDebtClear && remainCourse === 0) break;
     }
-
-    return {result, payoffMonths};
-  }
-
-  // 渲染結果
-  function renderResult(data) {
-    if(!data) {
-      document.getElementById('result').innerHTML = '';
-      return;
-    }
-
-    const {result, payoffMonths} = data;
-
-    let html = '';
-
-    // 還清時間摘要
-    html += '<h3>還清時間</h3><ul>';
-    for(const [name, month] of Object.entries(payoffMonths)) {
-      html += `<li>${name}：${month}</li>`;
-    }
-    html += '</ul>';
-
-    // 詳細每月還款表格
-    html += '<h3>詳細每月還款明細</h3>';
-    html += '<table><thead><tr><th>年月</th><th>課程繳納</th><th>課程剩餘</th>';
-
-    // 表頭：債務人名稱
-    if(result.length > 0) {
-      result[0].debts.forEach(d => {
-        html += `<th>${d.name} 本月還款</th><th>${d.name} 剩餘債務</th>`;
-      });
-    }
-    html += '</tr></thead><tbody>';
-
-    // 每月資料
-    result.forEach(monthData => {
-      html += `<tr><td>${monthData.year}-${String(monthData.month).padStart(2,'0')}</td>`;
-      html += `<td>${monthData.coursePay.toFixed(2)}</td><td>${monthData.courseRemain.toFixed(2)}</td>`;
-      monthData.debts.forEach(d => {
-        html += `<td>${d.pay.toFixed(2)}</td><td>${d.remain.toFixed(2)}</td>`;
-      });
-      html += '</tr>';
-    });
-
-    html += '</tbody></table>';
-
-    document.getElementById('result').innerHTML = html;
-  }
-
-  // 監聽表單提交
-  document.getElementById('repayForm').addEventListener('submit', e => {
-    e.preventDefault();
-
-    const startVal = document.getElementById('startMonth').value;
-    const [startYearStr, startMonthStr] = startVal.split('-');
-    const startYear = parseInt(startYearStr);
-    const startMonth = parseInt(startMonthStr);
-
-    const disposableIncome = parseFloat(document.getElementById('disposableIncome').value);
-    const courseAmount = parseFloat(document.getElementById('courseAmount').value);
-    const courseMonthlyPay = parseFloat(document.getElementById('courseMonthlyPay').value);
-
-    const debtCount = parseInt(document.getElementById('debtCount').value);
-
-    let debtors = [];
-    for(let i=1; i<=debtCount; i++) {
-      const name = document.getElementById(`debtorName${i}`).value.trim();
-      const amount = parseFloat(document.getElementById(`debtorAmount${i}`).value);
-      const ratio = parseFloat(document.getElementById(`debtorRatio${i}`).value);
-
-      if(!name) {
-        alert(`請輸入第 ${i} 位債務人名稱`);
-        return;
-      }
-      if(isNaN(amount) || amount < 0) {
-        alert(`第 ${i} 位債務人債務金額不合法`);
-        return;
-      }
-      if(isNaN(ratio) || ratio < 0 || ratio > 1) {
-        alert(`第 ${i} 位債務人比例不合法（0~1）`);
-        return;
-      }
-      debtors.push({name, amount, ratio});
-    }
-
-    const data = {
-      startYear,
-      startMonth,
-      disposableIncome,
-      courseAmount,
-      courseMonthlyPay,
-      debtors
-    };
-
-    const res = calculateRepayment(data);
-    renderResult(res);
-  });
-</script>
-<script>
-  // 以下為輔助函數、額外功能與說明文字，讓整體程式碼更加完整與豐富
-
-  // 生成隨機色彩
-  function randomColor() {
-    const r = Math.floor(Math.random() * 150) + 50;
-    const g = Math.floor(Math.random() * 150) + 50;
-    const b = Math.floor(Math.random() * 150) + 50;
-    return `rgb(${r},${g},${b})`;
-  }
-
-  // 顯示提示說明
-  function createInfoBox() {
-    const container = document.createElement('div');
-    container.style.background = '#eef6fc';
-    container.style.border = '1px solid #a0c4ff';
-    container.style.padding = '1rem 1.5rem';
-    container.style.borderRadius = '6px';
-    container.style.marginBottom = '2rem';
-    container.style.color = '#222';
-    container.style.fontSize = '0.95rem';
-    container.style.lineHeight = '1.5';
-    container.innerHTML = `
-      <h3 style="color:#0078d7; margin-bottom:0.5rem;">使用說明</h3>
-      <ul>
-        <li>請先輸入起始月份，還款將從該月份開始計算。</li>
-        <li>「每月可支配收入」為扣除必要開銷後，實際可用於還款的金額。</li>
-        <li>「課程總剩餘費用」與「課程每月繳納」指學費或課程分期款項。</li>
-        <li>「債務人數」最多可設定 10 位，分配比例總和需約等於 1。</li>
-        <li>每位債務人需輸入名稱、債務金額與分配比例，比例可精確到小數點4位。</li>
-        <li>計算結果會顯示各月還款金額及剩餘債務，方便追蹤還款進度。</li>
-        <li>若課程繳納超過可支配收入，系統會跳出警告。</li>
-      </ul>
-    `;
-    return container;
-  }
-
-  // 將說明框加入頁面 form 之上
-  const repayForm = document.getElementById('repayForm');
-  repayForm.parentNode.insertBefore(createInfoBox(), repayForm);
-
-  // 額外功能：清除結果按鈕
-  function addClearButton() {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = '清除結果';
-    btn.style.marginTop = '0.5rem';
-    btn.style.backgroundColor = '#a0a0a0';
-    btn.style.border = 'none';
-    btn.style.padding = '0.6rem 1rem';
-    btn.style.borderRadius = '6px';
-    btn.style.color = 'white';
-    btn.style.cursor = 'pointer';
-    btn.style.fontWeight = '600';
-
-    btn.addEventListener('click', () => {
-      document.getElementById('result').innerHTML = '';
-    });
-
-    repayForm.appendChild(btn);
-  }
-  addClearButton();
-
-  // 額外功能：重置表單按鈕
-  function addResetButton() {
-    const btn = document.createElement('button');
-    btn.type = 'reset';
-    btn.textContent = '重置表單';
-    btn.style.marginTop = '0.5rem';
-    btn.style.marginLeft = '1rem';
-    btn.style.backgroundColor = '#666';
-    btn.style.border = 'none';
-    btn.style.padding = '0.6rem 1rem';
-    btn.style.borderRadius = '6px';
-    btn.style.color = 'white';
-    btn.style.cursor = 'pointer';
-    btn.style.fontWeight = '600';
-
-    repayForm.appendChild(btn);
-  }
-  addResetButton();
-
-  // 表單重置時自動重建債務人輸入欄位預設值
-  repayForm.addEventListener('reset', () => {
-    setTimeout(() => {
-      createDebtInputs(parseInt(debtCountInput.value));
-      document.getElementById('result').innerHTML = '';
-    }, 10);
-  });
-
-  // 複雜功能示範：匯出結果為 CSV
-  function exportCSV(data) {
-    if(!data) return;
-    let csvContent = '年月,課程繳納,課程剩餘';
-    const names = data.result[0].debts.map(d => d.name);
-    names.forEach(name => {
-      csvContent += `,${name} 本月還款,${name} 剩餘債務`;
-    });
-    csvContent += '\n';
-
-    data.result.forEach(row => {
-      let rowStr = `${row.year}-${String(row.month).padStart(2,'0')},${row.coursePay.toFixed(2)},${row.courseRemain.toFixed(2)}`;
-      row.debts.forEach(d => {
-        rowStr += `,${d.pay.toFixed(2)},${d.remain.toFixed(2)}`;
-      });
-      csvContent += rowStr + '\n';
-    });
-
-    const blob = new Blob([csvContent], {type: 'text/csv;charset=utf-8;'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = '還款試算結果.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
-  // 加入匯出按鈕
-  function addExportButton() {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = '匯出結果CSV';
-    btn.style.marginTop = '0.5rem';
-    btn.style.marginLeft = '1rem';
-    btn.style.backgroundColor = '#0078d7';
-    btn.style.border = 'none';
-    btn.style.padding = '0.6rem 1rem';
-    btn.style.borderRadius = '6px';
-    btn.style.color = 'white';
-    btn.style.cursor = 'pointer';
-    btn.style.fontWeight = '600';
-
-    btn.addEventListener('click', () => {
-      const resultHTML = document.getElementById('result').innerHTML;
-      if(!resultHTML) {
-        alert('請先進行還款試算並顯示結果');
-        return;
-      }
-      // 重新計算取得最新資料
-      const startVal = document.getElementById('startMonth').value;
-      const [startYearStr, startMonthStr] = startVal.split('-');
-      const startYear = parseInt(startYearStr);
-      const startMonth = parseInt(startMonthStr);
-
-      const disposableIncome = parseFloat(document.getElementById('disposableIncome').value);
-      const courseAmount = parseFloat(document.getElementById('courseAmount').value);
-      const courseMonthlyPay = parseFloat(document.getElementById('courseMonthlyPay').value);
-
-      const debtCount = parseInt(document.getElementById('debtCount').value);
-
-      let debtors = [];
-      for(let i=1; i<=debtCount; i++) {
-        const name = document.getElementById(`debtorName${i}`).value.trim();
-        const amount = parseFloat(document.getElementById(`debtorAmount${i}`).value);
-        const ratio = parseFloat(document.getElementById(`debtorRatio${i}`).value);
-        debtors.push({name, amount, ratio});
-      }
-
-      const data = {
-        startYear,
-        startMonth,
-        disposableIncome,
-        courseAmount,
-        courseMonthlyPay,
-        debtors
-      };
-
-      const res = calculateRepayment(data);
-      exportCSV(res);
-    });
-
-    repayForm.appendChild(btn);
-  }
-  addExportButton();
-
-  // 額外提示：總債務計算功能（含課程 + 債務人合計）
-  function addTotalDebtDisplay() {
-    const div = document.createElement('div');
-    div.style.marginTop = '1rem';
-    div.style.fontWeight = '600';
-    div.style.fontSize = '1.1rem';
-    div.style.color = '#0078d7';
-    div.textContent = '';
-
-    repayForm.parentNode.insertBefore(div, repayForm.nextSibling);
-
-    function updateTotal() {
-      const courseAmount = parseFloat(document.getElementById('courseAmount').value) || 0;
-      const debtCount = parseInt(document.getElementById('debtCount').value);
-      let totalDebt = courseAmount;
-      for(let i=1; i<=debtCount; i++) {
-        const val = parseFloat(document.getElementById(`debtorAmount${i}`)?.value) || 0;
-        totalDebt += val;
-      }
-      div.textContent = `總債務(含課程)：${totalDebt.toFixed(2)} 元`;
-    }
-
-    repayForm.addEventListener('input', updateTotal);
-    updateTotal();
-  }
-  addTotalDebtDisplay();
-
-</script>
+  </script>
 </body>
 </html>
