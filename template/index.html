@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>💰 超級還款試算表 - 專業版</title>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.20.12/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -181,22 +181,40 @@
     });
   </script>
 
-  <script type="text/babel">
+  <script type="text/javascript">
+    // Configure Babel for JSX transformation
+    // This ensures Babel is ready before React code runs
+    if (typeof Babel !== 'undefined') {
+      console.log("Babel is loaded. Configuring presets...");
+      Babel.transformScriptTags(); // This processes all script tags with type="text/babel"
+    } else {
+      console.error("Babel is NOT loaded. React JSX will not work.");
+    }
+  </script>
+
+    <script type="text/babel">
+    console.log("Attempting to run React code...");
+
     // Error Boundary to catch rendering issues
     class ErrorBoundary extends React.Component {
       state = { hasError: false };
       static getDerivedStateFromError(error) {
+        console.error("Error Boundary caught an error:", error);
         return { hasError: true };
+      }
+      componentDidCatch(error, errorInfo) {
+        console.error("Error details:", error, errorInfo);
       }
       render() {
         if (this.state.hasError) {
-          return <h1 class="text-center text-red-600">發生錯誤，請重新整理頁面。</h1>;
+          return <h1 class="text-center text-red-600 p-8 text-xl">發生錯誤，請重新整理頁面或檢查控制台。</h1>;
         }
         return this.props.children;
       }
     }
 
     function App() {
+        console.log("App component is rendering.");
         const getInitialState = () => ({
           salary: 0,
           livingExpense: 0,
@@ -210,14 +228,17 @@
         const [state, setState] = React.useState(getInitialState);
 
         React.useEffect(() => {
+          console.log("App useEffect: fetching current state...");
           fetchCurrentState();
         }, []);
 
         const fetchCurrentState = async () => {
+          console.log("Fetching current state from API...");
           try {
             const response = await fetch('/api/get_current_state');
             if (response.ok) {
               const data = await response.json();
+              console.log("Current state fetched:", data);
               setState(prev => ({
                 ...prev,
                 salary: data.salary || 0,
@@ -229,11 +250,11 @@
             } else {
               const errorData = await response.json().catch(() => ({ message: response.statusText }));
               console.error('Failed to fetch current state:', response.status, errorData.message);
-              alert(`無法獲取最新狀態，請檢查伺服器或網路連線。錯誤：${errorData.message}`);
+              // alert(`無法獲取最新狀態，請檢查伺服器或網路連線。錯誤：${errorData.message}`); // 暫時註釋掉，避免彈窗阻礙除錯
             }
           } catch (error) {
-            console.error('Error fetching current state:', error);
-            alert('獲取最新狀態時發生網路錯誤或伺服器問題。');
+            console.error('Error fetching current state (network or server issue):', error);
+            // alert('獲取最新狀態時發生網路錯誤或伺服器問題。'); // 暫時註釋掉，避免彈窗阻礙除錯
           }
         };
 
@@ -254,6 +275,7 @@
             alert("欠款金額必須大於0");
             return false;
           }
+          console.log("Adding person:", { name, debt });
           try {
             const response = await fetch('/api/add_person', {
               method: 'POST',
@@ -284,6 +306,7 @@
             alert("課程期數必須是大於0的整數");
             return false;
           }
+          console.log("Adding course:", { fee, months });
           try {
             const response = await fetch('/api/add_course', {
               method: 'POST',
@@ -310,6 +333,7 @@
             alert("薪水必須是非負數");
             return false;
           }
+          console.log("Setting salary:", salary);
           try {
             const response = await fetch('/api/set_salary', {
               method: 'POST',
@@ -336,6 +360,7 @@
             alert("生活費必須是非負數");
             return false;
           }
+          console.log("Setting living expense:", expense);
           try {
             const response = await fetch('/api/set_living_expense', {
               method: 'POST',
@@ -363,6 +388,7 @@
             alert("起始月份必須介於1到12");
             return false;
           }
+          console.log("Setting start month:", monthInt);
           try {
             const response = await fetch('/api/set_start_month', {
               method: 'POST',
@@ -385,6 +411,7 @@
         };
 
         const removePerson = (index) => {
+          console.log("Removing person at index:", index);
           if (!confirm(`確定要從前端列表中移除還款人「${state.repayList[index].name}」嗎？\n(注意：此操作不會同步清除後端數據，如需徹底清除請使用「清空資料」)`)) return;
           const newList = [...state.repayList];
           newList.splice(index, 1);
@@ -392,6 +419,7 @@
         };
 
         const removeCourse = (index) => {
+          console.log("Removing course at index:", index);
           if (!confirm(`確定要從前端列表中移除課程 #${index + 1} 嗎？\n(注意：此操作不會同步清除後端數據，如需徹底清除請使用「清空資料」)`)) return;
           const newList = [...state.courseList];
           newList.splice(index, 1);
@@ -399,6 +427,7 @@
         };
 
         const calculate = async () => {
+          console.log("Calculating repayment plan...");
           try {
             const response = await fetch('/api/calculate', {
               method: 'POST',
@@ -406,9 +435,8 @@
               body: JSON.stringify({})
             });
             const data = await response.json();
-            console.log('API response:', data);
+            console.log('API response for calculate:', data);
             if (response.ok && data.status === 'success') {
-              console.log('calculationResult:', data.result);
               setState(prev => ({ ...prev, calculationResult: data.result }));
             } else {
               alert("計算失敗: " + (data.message || response.statusText));
@@ -422,6 +450,7 @@
         };
 
         const copyResult = async () => {
+          console.log("Copying result...");
           try {
             if (state.calculationResult) {
               await navigator.clipboard.writeText(state.calculationResult);
@@ -436,6 +465,7 @@
         };
 
         const exportCsv = async () => {
+          console.log("Exporting CSV...");
           try {
             const response = await fetch('/api/export_csv', {
               method: 'GET'
@@ -467,6 +497,7 @@
         };
 
         const clearAll = async () => {
+          console.log("Clearing all data...");
           if (!confirm('確定要清空所有設定和結果嗎？這將重置所有後端數據。')) return;
           try {
             const response = await fetch('/api/reset', {
@@ -524,17 +555,23 @@
         };
 
         React.useEffect(() => {
+          console.log("Chart useEffect triggered.");
           const canvas = document.getElementById('overall-debt-chart');
-          if (!canvas) return;
+          if (!canvas) {
+            console.warn("Chart canvas element not found.");
+            return;
+          }
 
           const existingChart = Chart.getChart(canvas);
           if (existingChart) {
             existingChart.destroy();
+            console.log("Destroyed existing chart.");
           }
 
           const { labels, values } = prepareOverallDebtChartData(state.repayList);
 
           if (values.length > 0 && values.some(val => val > 0)) {
+            console.log("Creating new chart with data:", { labels, values });
             new Chart(canvas, {
               type: 'pie',
               data: {
@@ -588,8 +625,9 @@
                     }
                   }
                 }
-              }
             });
+          } else {
+            console.log("No valid data for chart, skipping chart creation.");
           }
         }, [state.repayList]);
 
@@ -720,10 +758,10 @@
 
               <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-8">
                 <button class="btn bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700" onClick={() => openModal('setSalary')} title="設定薪水">
-                  薪水：{state.salary.toFixed(0)}
+                  薪水：{state.salary.toLocaleString('zh-TW', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
                 </button>
                 <button class="btn bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700" onClick={() => openModal('setLivingExpense')} title="設定生活費">
-                  生活費：{state.livingExpense.toFixed(0)}
+                  生活費：{state.livingExpense.toLocaleString('zh-TW', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
                 </button>
                 <button class="btn bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700" onClick={() => openModal('setStartMonth')} title="設定起始月份">
                   起始月：{state.startMonth}
@@ -769,7 +807,7 @@
                         <tbody>
                           {state.repayList.map((p, i) => (
                             <tr key={i} class="border-b hover:bg-gray-50">
-                              <td class="p-3 border">{p.name}</td> {/* 修正：顯示姓名 */}
+                              <td class="p-3 border">{p.name}</td>
                               <td class="p-3 border">{p.debt.toLocaleString('zh-TW', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
                               <td class="p-3 border">
                                 <button
@@ -820,7 +858,6 @@
                                 刪除
                               </button>
                             </td>
-                          </tr>
                       </tbody>
                     </table>
                   </div>
@@ -859,11 +896,11 @@
                                 ))}
                               </tr>
                             ))}
-                          </tbody>
-                        </table>
-                      );
-                    })()}
-                  </div>
+                      </tbody>
+                    </table>
+                  );
+                  })()}
+                </div>
                 ) : (
                   <p class="text-gray-500">點擊「計算試算」以查看結果。</p>
                 )}
@@ -883,11 +920,18 @@
         );
       }
 
-    ReactDOM.createRoot(document.getElementById('root')).render(
-      <ErrorBoundary>
-        <App />
-      </ErrorBoundary>
-    );
+    console.log("Attempting to render React app...");
+    const rootElement = document.getElementById('root');
+    if (rootElement) {
+      ReactDOM.createRoot(rootElement).render(
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
+      );
+      console.log("ReactDOM.createRoot().render() called.");
+    } else {
+      console.error("Error: Div with id 'root' not found! React app cannot mount.");
+    }
   </script>
 </body>
 </html>
