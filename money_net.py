@@ -5,7 +5,7 @@ from flask import Flask, render_template, request, jsonify, send_file
 from flask_cors import CORS
 import pandas as pd
 
-app = Flask(__name__, template_folder='template')
+app = Flask(__name__, template_folder='templates')  # 注意templates資料夾
 CORS(app)
 
 state = {
@@ -31,6 +31,8 @@ def load_page(page):
         if os.path.exists(path):
             return render_template(f"{page}.html")
     return "404 頁面不存在", 404
+
+# API區塊 --------------------------------------------------
 
 @app.route('/api/get_state', methods=['GET'])
 def get_state():
