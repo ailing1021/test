@@ -1,844 +1,296 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>💰 超級還款試算表 - 完整版</title>
-<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-<script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.20.12/babel.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<style>
-  /* --- 基本排版與樣式 --- */
-  html, body {
-    margin: 0; padding: 0; height: 100%;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f9fafb;
-    color: #111827;
-  }
-  #root {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-  }
-  main {
-    flex-grow: 1;
-    max-width: 1280px;
-    margin: 20px auto 0 auto;
-    padding: 20px;
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 6px 15px rgba(0,0,0,0.1);
-  }
-  h1, h2, h3 {
-    margin: 0 0 12px 0;
-    font-weight: 700;
-  }
-  h1 {
-    font-size: 2.5rem;
-    color: #1e293b;
-    text-align: center;
-  }
-  h2 {
-    font-size: 1.7rem;
-    color: #334155;
-    border-bottom: 2px solid #3b82f6;
-    padding-bottom: 4px;
-    margin-bottom: 20px;
-  }
-  label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 6px;
-  }
-  input[type="number"], input[type="text"], select {
-    width: 100%;
-    padding: 8px 12px;
-    font-size: 1rem;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    outline-offset: 2px;
-    outline-color: #3b82f6;
-    box-sizing: border-box;
-  }
-  button {
-    background-color: #3b82f6;
-    border: none;
-    color: white;
-    font-size: 1rem;
-    font-weight: 700;
-    padding: 12px 24px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-    user-select: none;
-  }
-  button:hover {
-    background-color: #2563eb;
-  }
-  button:disabled {
-    background-color: #93c5fd;
-    cursor: not-allowed;
-  }
-  .section {
-    margin-bottom: 32px;
-  }
-  .flex-row {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-  .flex-col {
-    display: flex;
-    flex-direction: column;
-  }
-  .flex-row > div, .flex-col > div {
-    flex: 1;
-    min-width: 250px;
-  }
-  table {
-    border-collapse: collapse;
-    width: 100%;
-  }
-  th, td {
-    border: 1px solid #e2e8f0;
-    padding: 12px 16px;
-    text-align: center;
-  }
-  th {
-    background-color: #f1f5f9;
-    position: sticky;
-    top: 0;
-    z-index: 2;
-  }
-  .table-wrapper {
-    max-height: 360px;
-    overflow-y: auto;
-    border-radius: 10px;
-    border: 1px solid #e2e8f0;
-    box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
-  }
-  .error-msg {
-    color: #dc2626;
-    font-weight: 700;
-    margin-bottom: 20px;
-  }
-  .footer {
-    background-color: #f1f5f9;
-    text-align: center;
-    padding: 12px 0;
-    font-size: 14px;
-    color: #64748b;
-    user-select: none;
-    margin-top: auto;
-    border-top: 1px solid #cbd5e1;
-  }
-  .footer a {
-    color: #3b82f6;
-    text-decoration: none;
-    margin: 0 12px;
-  }
-  .footer a:hover {
-    text-decoration: underline;
-  }
-  @media (max-width: 640px) {
-    .flex-row {
-      flex-direction: column;
-    }
-    .flex-row > div {
-      min-width: 100%;
-    }
-  }
-</style>
+    <meta charset="UTF-8" />
+    <title>還款計算器</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: auto; padding: 10px; }
+        nav a { margin: 0 10px; cursor: pointer; color: blue; text-decoration: underline; }
+        section { display: none; }
+        section.active { display: block; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ccc; padding: 5px; text-align: center; }
+        input[type="number"] { width: 100px; }
+        .btn { padding: 5px 10px; cursor: pointer; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
 </head>
 <body>
-  <div id="root"></div>
-<footer class="footer">
-  <a href="http://localhost:5000/api/pages/privacy" target="_blank">隱私權政策</a> |
-  <a href="http://localhost:5000/api/pages/terms" target="_blank">使用條款</a> |
-  <a href="http://localhost:5000/api/pages/about" target="_blank">關於我們</a> |
-  <a href="http://localhost:5000/api/pages/contact" target="_blank">聯絡我們</a>
-</footer>
+    <h1>還款計算器</h1>
 
-<script type="text/babel">
-  const { useState, useEffect, useRef } = React;
+    <nav>
+        <a data-page="main">首頁</a>
+        <a data-page="about">關於</a>
+        <a data-page="contact">聯絡</a>
+        <a data-page="terms">服務條款</a>
+        <a data-page="privacy">隱私權政策</a>
+    </nav>
 
-  // 定義數據結構類型（僅為方便理解，JavaScript 不強制類型）
-  /**
-   * 還款人資料結構
-   * @typedef {Object} RepayPerson
-   * @property {string} name - 姓名
-   * @property {number} debt - 欠款金額
-   */
-
-  /**
-   * 課程資料結構
-   * @typedef {Object} Course
-   * @property {number} fee - 課程總費用
-   * @property {number} months - 課程期數(月份)
-   */
-
-  /**
-   * 主元件
-   */
-  function App() {
-    // 基本輸入欄位狀態
-    const [salary, setSalary] = useState('');
-    const [livingExpense, setLivingExpense] = useState('');
-    const [startMonth, setStartMonth] = useState(1);
-
-    // 還款人列表 (RepayPerson[])
-    const [repayList, setRepayList] = useState([]);
-    // 新增還款人欄位
-    const [newPersonName, setNewPersonName] = useState('');
-    const [newPersonDebt, setNewPersonDebt] = useState('');
-
-    // 課程列表 (Course[])
-    const [courseList, setCourseList] = useState([]);
-    // 新增課程欄位
-    const [newCourseFee, setNewCourseFee] = useState('');
-    const [newCourseMonths, setNewCourseMonths] = useState('');
-
-    // 錯誤訊息
-    const [errorMsg, setErrorMsg] = useState('');
-
-    // 計算結果狀態
-    // 這裡的 calcResult 將會儲存後端返回的結構化數據
-    const [calcResult, setCalcResult] = useState(null);
-
-    // Chart.js 圖表實例引用
-    const chartRef = useRef(null);
-    const chartInstanceRef = useRef(null);
-
-    // ====== 初次載入時從後端獲取當前狀態 ======
-    useEffect(() => {
-      fetch('http://localhost:5000/api/get_current_state')
-        .then(response => response.json())
-        .then(data => {
-          if (data.status === 'success') {
-            setSalary(data.salary === 0 ? '' : data.salary.toString());
-            setLivingExpense(data.living_expense === 0 ? '' : data.living_expense.toString());
-            setStartMonth(data.start_month);
-            setRepayList(data.repay_list);
-            setCourseList(data.course_list);
-          } else {
-            console.error('Failed to load initial state:', data.message);
-          }
-        })
-        .catch(error => console.error('Error fetching initial state:', error));
-    }, []); // 空依賴陣列表示只在組件掛載時執行一次
-
-    // ====== 輸入控制與驗證 ======
-    // 驗證數字格式，允許空白或合法正數 (前端即時驗證)
-    function validatePositiveNumber(val) {
-      if (val === '') return true;
-      return !isNaN(val) && Number(val) >= 0;
-    }
-
-    // 將薪水和生活費變動同步到後端
-    const handleSalaryChange = (e) => {
-        const val = e.target.value;
-        if (validatePositiveNumber(val)) {
-            setSalary(val);
-            fetch('http://localhost:5000/api/set_salary', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ salary: Number(val) })
-            }).then(res => res.json()).then(data => {
-                if (data.status !== 'success') setErrorMsg(data.message);
-            }).catch(err => setErrorMsg('更新薪水失敗'));
-        }
-    };
-
-    const handleLivingExpenseChange = (e) => {
-        const val = e.target.value;
-        if (validatePositiveNumber(val)) {
-            setLivingExpense(val);
-            fetch('http://localhost:5000/api/set_living_expense', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ expense: Number(val) })
-            }).then(res => res.json()).then(data => {
-                if (data.status !== 'success') setErrorMsg(data.message);
-            }).catch(err => setErrorMsg('更新生活費失敗'));
-        }
-    };
-
-    const handleStartMonthChange = (e) => {
-        const val = Number(e.target.value);
-        setStartMonth(val);
-        fetch('http://localhost:5000/api/set_start_month', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ start_month: val })
-        }).then(res => res.json()).then(data => {
-            if (data.status !== 'success') setErrorMsg(data.message);
-        }).catch(err => setErrorMsg('更新起始月份失敗'));
-    };
-
-    // ====== 新增還款人功能 (數據發送到後端) ======
-    function addRepayPerson() {
-      setErrorMsg('');
-      if (!newPersonName.trim()) {
-        setErrorMsg('請輸入還款人姓名');
-        return;
-      }
-      if (!newPersonDebt.trim() || isNaN(newPersonDebt) || Number(newPersonDebt) <= 0) {
-        setErrorMsg('欠款金額必須是大於0的數字');
-        return;
-      }
-
-      fetch('http://localhost:5000/api/add_person', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: newPersonName.trim(),
-          debt: Number(newPersonDebt)
-        })
-      })
-      .then(response => {
-        if (!response.ok) {
-          return response.json().then(err => { throw new Error(err.message || '伺服器錯誤'); });
-        }
-        return response.json();
-      })
-      .then(data => {
-        if (data.status === 'success') {
-          setRepayList(data.repay_list); // 使用後端返回的最新列表更新狀態
-          setNewPersonName('');
-          setNewPersonDebt('');
-          setErrorMsg('');
-        } else {
-          setErrorMsg(data.message);
-        }
-      })
-      .catch(error => {
-        console.error('新增還款人失敗:', error);
-        setErrorMsg(`新增失敗：${error.message || '網路或伺服器錯誤'}`);
-      });
-    }
-
-    // ====== 移除還款人 (數據發送到後端) ======
-    function removeRepayPerson(nameToRemove) {
-      if (!window.confirm(`確定要移除還款人 ${nameToRemove} 嗎？`)) return;
-
-      fetch('http://localhost:5000/api/remove_person', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name: nameToRemove })
-      })
-      .then(response => {
-        if (!response.ok) {
-          return response.json().then(err => { throw new Error(err.message || '伺服器錯誤'); });
-        }
-        return response.json();
-      })
-      .then(data => {
-        if (data.status === 'success') {
-          setRepayList(data.repay_list); // 使用後端返回的最新列表更新狀態
-          setErrorMsg('');
-        } else {
-          setErrorMsg(data.message);
-        }
-      })
-      .catch(error => {
-        console.error('移除還款人失敗:', error);
-        setErrorMsg(`移除失敗：${error.message || '網路或伺服器錯誤'}`);
-      });
-    }
-
-    // ====== 新增課程功能 (數據發送到後端) ======
-    function addCourse() {
-      setErrorMsg('');
-      if (!newCourseFee.trim() || isNaN(newCourseFee) || Number(newCourseFee) <= 0) {
-        setErrorMsg('課程費用必須是大於0的數字');
-        return;
-      }
-      if (!newCourseMonths.trim() || isNaN(newCourseMonths) || !Number.isInteger(Number(newCourseMonths)) || Number(newCourseMonths) <= 0) {
-        setErrorMsg('課程期數必須是大於0的整數');
-        return;
-      }
-      
-      fetch('http://localhost:5000/api/add_course', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          fee: Number(newCourseFee),
-          months: Number(newCourseMonths)
-        })
-      })
-      .then(response => {
-        if (!response.ok) {
-          return response.json().then(err => { throw new Error(err.message || '伺服器錯誤'); });
-        }
-        return response.json();
-      })
-      .then(data => {
-        if (data.status === 'success') {
-          setCourseList(data.course_list); // 使用後端返回的最新列表更新狀態
-          setNewCourseFee('');
-          setNewCourseMonths('');
-          setErrorMsg('');
-        } else {
-          setErrorMsg(data.message);
-        }
-      })
-      .catch(error => {
-        console.error('新增課程失敗:', error);
-        setErrorMsg(`新增失敗：${error.message || '網路或伺服器錯誤'}`);
-      });
-    }
-
-    // ====== 移除課程 (數據發送到後端) ======
-    function removeCourse(indexToRemove) {
-      if (!window.confirm(`確定要移除課程 #${indexToRemove + 1} 嗎？`)) return;
-
-      fetch('http://localhost:5000/api/remove_course', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ index: indexToRemove })
-      })
-      .then(response => {
-        if (!response.ok) {
-          return response.json().then(err => { throw new Error(err.message || '伺服器錯誤'); });
-        }
-        return response.json();
-      })
-      .then(data => {
-        if (data.status === 'success') {
-          setCourseList(data.course_list); // 使用後端返回的最新列表更新狀態
-          setErrorMsg('');
-        } else {
-          setErrorMsg(data.message);
-        }
-      })
-      .catch(error => {
-        console.error('移除課程失敗:', error);
-        setErrorMsg(`移除失敗：${error.message || '網路或伺服器錯誤'}`);
-      });
-    }
-
-    // ====== 從後端計算還款計畫 ======
-    function calculateRepaymentPlan() {
-      setErrorMsg('');
-      setCalcResult(null); // 清除上次結果
-
-      fetch('http://localhost:5000/api/calculate', { // <--- 向後端 API 發送請求
-        method: 'POST', // 使用 POST 方法
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        // body 不需要包含數據，因為後端會從其狀態中獲取所有必要數據
-        body: JSON.stringify({}) // 發送一個空的 JSON 物件
-      })
-      .then(response => {
-        if (!response.ok) { // 檢查 HTTP 狀態碼
-          return response.json().then(err => { throw new Error(err.message || '伺服器錯誤'); });
-        }
-        return response.json();
-      })
-      .then(data => {
-        if (data.status === 'success') {
-          // 後端現在返回了結構化的數據，可以直接更新狀態
-          setCalcResult({
-            totalDebt: data.total_debt,
-            monthlyRepayBudget: data.monthly_repay_budget,
-            totalCourseMonthlyFee: data.total_course_monthly_fee,
-            totalMonths: data.total_months,
-            plan: data.repayment_plan, // 詳細的每月計畫
-            repayCompletionDates: data.repay_completion_dates,
-            courseCompletionDates: data.course_completion_dates,
-            summaryText: data.summary_text // 完整的文字摘要
-          });
-          setErrorMsg('');
-        } else {
-          setErrorMsg(data.message);
-        }
-      })
-      .catch(error => {
-        console.error('計算還款計畫失敗:', error);
-        setErrorMsg(`計算失敗：${error.message || '網路或伺服器錯誤'}`);
-      });
-    }
-
-    // ====== 複製結果文字 (使用後端提供的摘要) ======
-    function copyResultToClipboard() {
-      if (!calcResult || !calcResult.summaryText) {
-        alert('請先計算還款計畫');
-        return;
-      }
-      navigator.clipboard.writeText(calcResult.summaryText).then(() => alert('已複製結果到剪貼簿'));
-    }
-
-    // ====== 匯出 CSV (請求後端生成並下載) ======
-    function exportCsvFile() {
-      if (!calcResult) {
-        alert('請先計算還款計畫才能匯出CSV');
-        return;
-      }
-      // 直接讓瀏覽器導向到後端匯出 CSV 的 API
-      window.location.href = 'http://localhost:5000/api/export_csv';
-    }
-
-    // ====== Chart.js 顯示欠款分布 (基於前端的 repayList 狀態) ======
-    useEffect(() => {
-      if (chartInstanceRef.current) {
-        chartInstanceRef.current.destroy(); // 銷毀舊的 Chart 實例
-      }
-      if (repayList.length === 0 || !chartRef.current) { // 如果沒有還款人或 canvas 不存在，則不繪圖
-        return;
-      }
-
-      const ctx = chartRef.current.getContext('2d');
-      chartInstanceRef.current = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: repayList.map(p => p.name),
-          datasets: [{
-            label: '欠款金額',
-            data: repayList.map(p => p.debt),
-            backgroundColor: [
-              '#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6',
-              '#06b6d4', '#db2777', '#6d28d9', '#ca8a04', '#4ade80'
-            ],
-            borderWidth: 1,
-          }],
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: {
-              position: 'right',
-              labels: { font: { size: 14 } }
-            },
-            tooltip: { enabled: true },
-            title: {
-              display: true,
-              text: '還款人欠款比例圖',
-              font: { size: 18, weight: 'bold' }
-            },
-          },
-          cutout: '60%',
-        },
-      });
-    }, [repayList]); // 當 repayList 改變時重新繪製圖表
-
-    // ====== 主畫面渲染 ======
-    return (
-      <main role="main" aria-label="超級還款試算表主畫面">
-        <h1>💰 超級還款試算表</h1>
-
-        {/* 薪資與生活費輸入 */}
-        <section className="section" aria-labelledby="salary-expense-label">
-          <h2 id="salary-expense-label">基本資料輸入</h2>
-          <div className="flex-row">
-            <div className="flex-col">
-              <label htmlFor="salary">每月薪水 (元)</label>
-              <input
-                type="number"
-                id="salary"
-                min="0"
-                step="100"
-                placeholder="輸入每月薪水"
-                value={salary}
-                onChange={handleSalaryChange} // 使用修正後的處理函數
-                aria-required="true"
-              />
-            </div>
-            <div className="flex-col">
-              <label htmlFor="living-expense">每月生活費 (元)</label>
-              <input
-                type="number"
-                id="living-expense"
-                min="0"
-                step="100"
-                placeholder="輸入每月生活費"
-                value={livingExpense}
-                onChange={handleLivingExpenseChange} // 使用修正後的處理函數
-                aria-required="true"
-              />
-            </div>
-            <div className="flex-col" style={{minWidth: '120px'}}>
-              <label htmlFor="start-month">起始月份</label>
-              <select
-                id="start-month"
-                value={startMonth}
-                onChange={handleStartMonthChange} // 使用修正後的處理函數
-                aria-required="true"
-              >
-                {[...Array(12).keys()].map(m => (
-                  <option key={m+1} value={m+1}>{m+1} 月</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </section>
-
-        {/* 還款人新增與列表 */}
-        <section className="section" aria-labelledby="repay-list-label">
-          <h2 id="repay-list-label">新增還款人</h2>
-          <div className="flex-row" style={{alignItems: 'flex-end'}}>
-            <div className="flex-col">
-              <label htmlFor="new-person-name">姓名</label>
-              <input
-                type="text"
-                id="new-person-name"
-                placeholder="輸入還款人姓名"
-                value={newPersonName}
-                onChange={e => setNewPersonName(e.target.value)}
-                aria-required="true"
-                maxLength={20}
-              />
-            </div>
-            <div className="flex-col">
-              <label htmlFor="new-person-debt">欠款金額 (元)</label>
-              <input
-                type="number"
-                id="new-person-debt"
-                min="0"
-                step="100"
-                placeholder="輸入欠款金額"
-                value={newPersonDebt}
-                onChange={e => validatePositiveNumber(e.target.value) && setNewPersonDebt(e.target.value)}
-                aria-required="true"
-              />
-            </div>
-            <div>
-              <button onClick={addRepayPerson} aria-label="新增還款人">新增</button>
-            </div>
-          </div>
-
-          {/* 還款人列表表格 */}
-          {repayList.length === 0 ? (
-            <p style={{marginTop:'12px'}}>尚無還款人資料</p>
-          ) : (
-            <div className="table-wrapper" role="table" aria-label="還款人列表" style={{marginTop:'12px'}}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>姓名</th>
-                    <th>欠款金額 (元)</th>
-                    <th>操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {repayList.map((p, i) => (
-                    <tr key={p.name}> {/* 使用 name 作為 key 更穩定 */}
-                      <td>{p.name}</td>
-                      <td>{p.debt.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                      <td>
-                        <button
-                          onClick={() => removeRepayPerson(p.name)} // 傳入姓名讓後端移除
-                          aria-label={`移除還款人 ${p.name}`}
-                          style={{backgroundColor:'#ef4444', margin: '0 auto', display:'block'}}
-                        >刪除</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-
-        {/* 課程新增與列表 */}
-        <section className="section" aria-labelledby="course-list-label">
-          <h2 id="course-list-label">新增課程</h2>
-          <div className="flex-row" style={{alignItems: 'flex-end'}}>
-            <div className="flex-col">
-              <label htmlFor="new-course-fee">課程總費用 (元)</label>
-              <input
-                type="number"
-                id="new-course-fee"
-                min="0"
-                step="100"
-                placeholder="輸入課程費用"
-                value={newCourseFee}
-                onChange={e => validatePositiveNumber(e.target.value) && setNewCourseFee(e.target.value)}
-                aria-required="true"
-              />
-            </div>
-            <div className="flex-col" style={{minWidth:'140px'}}>
-              <label htmlFor="new-course-months">課程期數 (月)</label>
-              <input
-                type="number"
-                id="new-course-months"
-                min="1"
-                max="100"
-                step="1"
-                placeholder="輸入課程期數"
-                value={newCourseMonths}
-                onChange={e => {
-                  const val = e.target.value;
-                  if (val === '' || (/^\d+$/.test(val) && Number(val) > 0 && Number(val) <= 100)) {
-                    setNewCourseMonths(val);
-                  }
-                }}
-                aria-required="true"
-              />
-            </div>
-            <div>
-              <button onClick={addCourse} aria-label="新增課程">新增</button>
-            </div>
-          </div>
-
-          {/* 課程列表表格 */}
-          {courseList.length === 0 ? (
-            <p style={{marginTop:'12px'}}>尚無課程資料</p>
-          ) : (
-            <div className="table-wrapper" role="table" aria-label="課程列表" style={{marginTop:'12px'}}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>課程編號</th>
-                    <th>課程總費用 (元)</th>
-                    <th>課程期數 (月)</th>
-                    <th>操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {courseList.map((c, i) => (
-                    <tr key={i}>
-                      <td>{i+1}</td>
-                      <td>{c.fee.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                      <td>{c.months}</td>
-                      <td>
-                        <button
-                          onClick={() => removeCourse(i)} // 傳入索引讓後端移除
-                          aria-label={`移除課程編號 ${i+1}`}
-                          style={{backgroundColor:'#ef4444', margin: '0 auto', display:'block'}}
-                        >刪除</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-
-        {/* 錯誤訊息 */}
-        {errorMsg && <p className="error-msg" role="alert">{errorMsg}</p>}
-
-        {/* 計算按鈕 */}
-        <div style={{textAlign: 'center', marginBottom: '32px'}}>
-          <button
-            onClick={calculateRepaymentPlan} // 現在會向後端發送請求
-            aria-label="開始計算還款計畫"
-            style={{minWidth:'260px', fontWeight:'700', fontSize:'1.3rem'}}
-          >
-            計算還款計畫
-          </button>
+    <!-- 主頁 -->
+    <section id="main" class="active">
+        <h2>基本設定</h2>
+        <div>
+            <label>每月薪水: <input type="number" id="salary" min="0" step="0.01" /></label>
+            <button id="btnSetSalary">設定薪水</button>
+        </div>
+        <div>
+            <label>每月生活費: <input type="number" id="livingExpense" min="0" step="0.01" /></label>
+            <button id="btnSetExpense">設定生活費</button>
+        </div>
+        <div>
+            <label>還款起始月份(1~12): <input type="number" id="startMonth" min="1" max="12" /></label>
+            <button id="btnSetStartMonth">設定起始月份</button>
         </div>
 
-        {/* 計算結果 */}
-        {calcResult && (
-          <section className="section" aria-labelledby="result-label">
-            <h2 id="result-label">試算結果</h2>
-            <p>每月可支配收入：<strong>{calcResult.monthlyRepayBudget.toFixed(2)}</strong> 元</p>
-            <p>總欠款金額：<strong>{calcResult.totalDebt.toFixed(2)}</strong> 元</p>
-            <p>課程每月費用合計：<strong>{calcResult.totalCourseMonthlyFee.toFixed(2)}</strong> 元</p>
-            <p>估計總還款期數：約 <strong>{calcResult.totalMonths}</strong> 個月</p>
+        <h2>還款人管理</h2>
+        <div>
+            <input type="text" id="personName" placeholder="姓名" />
+            <input type="number" id="personDebt" placeholder="欠款金額" min="0" step="0.01" />
+            <button id="btnAddPerson">新增還款人</button>
+        </div>
+        <ul id="personList"></ul>
 
-            {/* 還款人繳清日期 */}
-            {Object.keys(calcResult.repayCompletionDates).length > 0 && (
-                <div>
-                    <h3>還款人繳清日期</h3>
-                    <ul>
-                        {Object.entries(calcResult.repayCompletionDates).map(([name, date]) => (
-                            <li key={name}><strong>{name}</strong>: {date}</li>
-                        ))}
-                    </ul>
-                </div>
-            )}
+        <h2>課程管理</h2>
+        <div>
+            <input type="number" id="courseFee" placeholder="課程費用" min="0" step="0.01" />
+            <input type="number" id="courseMonths" placeholder="期數" min="1" />
+            <button id="btnAddCourse">新增課程</button>
+        </div>
+        <ul id="courseList"></ul>
 
-            {/* 課程繳清日期 */}
-            {Object.keys(calcResult.courseCompletionDates).length > 0 && (
-                <div>
-                    <h3>課程繳清日期</h3>
-                    <ul>
-                        {Object.entries(calcResult.courseCompletionDates).map(([name, date]) => (
-                            <li key={name}><strong>{name}</strong>: {date}</li>
-                        ))}
-                    </ul>
-                </div>
-            )}
+        <h2>計算與結果</h2>
+        <button id="btnCalculate">開始計算</button>
+        <button id="btnExportCsv">匯出 CSV</button>
 
-            <div
-              className="chart-container"
-              role="img"
-              aria-label="欠款比例圓餅圖"
-              style={{maxWidth:'480px', margin:'20px auto'}}
-            >
-              <canvas ref={chartRef} width="480" height="360"></canvas>
-            </div>
+        <pre id="resultArea" style="background:#eee; padding:10px; height:300px; overflow:auto;"></pre>
+    </section>
 
-            {/* 每月還款明細表格 */}
-            {calcResult.plan && calcResult.plan.length > 0 && (
-                <div className="table-wrapper" style={{maxHeight:'480px'}}>
-                  <table aria-label="每月還款計畫明細" style={{tableLayout:'fixed'}}>
-                    <thead>
-                      <tr>
-                        <th style={{width:'80px'}}>月份</th>
-                        {/* 動態顯示所有還款人姓名作為表頭 */}
-                        {repayList.map(p => (
-                          <th key={p.name} style={{wordBreak:'break-word'}}>{p.name}</th>
-                        ))}
-                        {/* 動態顯示所有課程名稱作為表頭 */}
-                        {courseList.map((c, idx) => (
-                          <th key={`course-${idx}`} style={{wordBreak:'break-word'}}>{`課程${idx+1}`}</th>
-                        ))}
-                        <th>本月總還款/繳費</th>
-                        <th>本月剩餘收入</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {calcResult.plan.map((m, idx) => (
-                        <tr key={idx}>
-                          <td>{m.date}</td>
-                          {repayList.map(p => (
-                            <td key={p.name + '-' + idx}>{(m.repayments_detail[p.name] || 0).toFixed(2)}</td>
-                          ))}
-                          {courseList.map((c, cIdx) => (
-                            <td key={`course-pay-${cIdx}-${idx}`}>{(m.course_payments_detail[`課程${cIdx+1}`] || 0).toFixed(2)}</td>
-                          ))}
-                          <td>{m.total_repaid_this_month.toFixed(2)}</td>
-                          <td>{m.remaining_income_this_month.toFixed(2)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-            )}
+    <!-- 關於頁 -->
+    <section id="about">
+        <h2>關於我們</h2>
+        <p>這是一個還款計算器的示範專案。</p>
+    </section>
 
+    <!-- 聯絡頁 -->
+    <section id="contact">
+        <h2>聯絡我們</h2>
+        <p>請透過 email@example.com 聯絡我們。</p>
+    </section>
 
-            {/* 複製與匯出按鈕 */}
-            <div style={{marginTop:'24px', textAlign:'center'}}>
-              <button onClick={copyResultToClipboard} aria-label="複製還款結果">複製結果</button>
-              <button onClick={exportCsvFile} aria-label="匯出還款計畫 CSV" style={{marginLeft:'16px'}}>匯出 CSV</button>
-            </div>
+    <!-- 服務條款 -->
+    <section id="terms">
+        <h2>服務條款</h2>
+        <p>本服務條款規範本網站的使用規範與權利義務。</p>
+    </section>
 
-            {/* 顯示後端返回的原始總結文字 (可選) */}
-            {/* <h3 style={{marginTop: '30px'}}>完整文字摘要：</h3>
-            <pre style={{whiteSpace: 'pre-wrap', backgroundColor: '#f0f4f8', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.9em'}}>{calcResult.summaryText}</pre> */}
+    <!-- 隱私權政策 -->
+    <section id="privacy">
+        <h2>隱私權政策</h2>
+        <p>本網站重視您的隱私權，請詳閱本政策內容。</p>
+    </section>
 
-          </section>
-        )}
+    <script>
+    // 頁面切換
+    document.querySelectorAll('nav a').forEach(a => {
+        a.addEventListener('click', () => {
+            let page = a.getAttribute('data-page');
+            document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+            document.getElementById(page).classList.add('active');
+        });
+    });
 
-      </main>
-    );
-  }
+    const apiBase = '/api';
 
-  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    // 取得目前狀態並初始化
+    async function loadState() {
+        const res = await fetch(apiBase + '/get_current_state');
+        const data = await res.json();
+        if(data.status === 'success') {
+            document.getElementById('salary').value = data.salary;
+            document.getElementById('livingExpense').value = data.living_expense;
+            document.getElementById('startMonth').value = data.start_month;
+            refreshPersonList(data.repay_list);
+            refreshCourseList(data.course_list);
+        }
+    }
 
-</script>
+    // 更新還款人列表
+    function refreshPersonList(list) {
+        const ul = document.getElementById('personList');
+        ul.innerHTML = '';
+        list.forEach((p,i) => {
+            let li = document.createElement('li');
+            li.textContent = `${p.name} 欠款: ${p.debt.toFixed(2)} 元 `;
+            let btn = document.createElement('button');
+            btn.textContent = '刪除';
+            btn.onclick = () => removePerson(p.name);
+            li.appendChild(btn);
+            ul.appendChild(li);
+        });
+    }
+
+    // 更新課程列表
+    function refreshCourseList(list) {
+        const ul = document.getElementById('courseList');
+        ul.innerHTML = '';
+        list.forEach((c,i) => {
+            let li = document.createElement('li');
+            li.textContent = `費用: ${c.fee.toFixed(2)} 元，期數: ${c.months} `;
+            let btn = document.createElement('button');
+            btn.textContent = '刪除';
+            btn.onclick = () => removeCourse(i);
+            li.appendChild(btn);
+            ul.appendChild(li);
+        });
+    }
+
+    // 新增還款人
+    async function addPerson() {
+        let name = document.getElementById('personName').value.trim();
+        let debt = document.getElementById('personDebt').value.trim();
+        if(!name || !debt) {
+            alert('請輸入姓名和欠款金額');
+            return;
+        }
+        let res = await fetch(apiBase + '/add_person', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({name, debt})
+        });
+        let data = await res.json();
+        if(data.status === 'success') {
+            refreshPersonList(data.repay_list);
+            document.getElementById('personName').value = '';
+            document.getElementById('personDebt').value = '';
+        } else alert(data.message);
+    }
+
+    // 移除還款人
+    async function removePerson(name) {
+        let res = await fetch(apiBase + '/remove_person', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({name})
+        });
+        let data = await res.json();
+        if(data.status === 'success') {
+            refreshPersonList(data.repay_list);
+        } else alert(data.message);
+    }
+
+    // 新增課程
+    async function addCourse() {
+        let fee = document.getElementById('courseFee').value.trim();
+        let months = document.getElementById('courseMonths').value.trim();
+        if(!fee || !months) {
+            alert('請輸入課程費用與期數');
+            return;
+        }
+        let res = await fetch(apiBase + '/add_course', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({fee, months})
+        });
+        let data = await res.json();
+        if(data.status === 'success') {
+            refreshCourseList(data.course_list);
+            document.getElementById('courseFee').value = '';
+            document.getElementById('courseMonths').value = '';
+        } else alert(data.message);
+    }
+
+    // 移除課程
+    async function removeCourse(idx) {
+        let res = await fetch(apiBase + '/remove_course', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({index: idx})
+        });
+        let data = await res.json();
+        if(data.status === 'success') {
+            refreshCourseList(data.course_list);
+        } else alert(data.message);
+    }
+
+    // 設定薪水
+    async function setSalary() {
+        let salary = document.getElementById('salary').value.trim();
+        let res = await fetch(apiBase + '/set_salary', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({salary})
+        });
+        let data = await res.json();
+        if(data.status === 'success') alert('薪水設定成功');
+        else alert(data.message);
+    }
+
+    // 設定生活費
+    async function setExpense() {
+        let expense = document.getElementById('livingExpense').value.trim();
+        let res = await fetch(apiBase + '/set_living_expense', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({expense})
+        });
+        let data = await res.json();
+        if(data.status === 'success') alert('生活費設定成功');
+        else alert(data.message);
+    }
+
+    // 設定起始月份
+    async function setStartMonth() {
+        let start_month = document.getElementById('startMonth').value.trim();
+        let res = await fetch(apiBase + '/set_start_month', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({start_month})
+        });
+        let data = await res.json();
+        if(data.status === 'success') alert('起始月份設定成功');
+        else alert(data.message);
+    }
+
+    // 計算
+    async function calculate() {
+        const res = await fetch(apiBase + '/calculate', {method: 'POST'});
+        const data = await res.json();
+        if(data.status === 'success') {
+            document.getElementById('resultArea').textContent = JSON.stringify(data, null, 2);
+        } else {
+            alert(data.message);
+        }
+    }
+
+    // 匯出 CSV
+    async function exportCsv() {
+        const res = await fetch(apiBase + '/export_csv');
+        if(res.ok) {
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'repayment_plan.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        } else {
+            const err = await res.json();
+            alert(err.message || '匯出失敗');
+        }
+    }
+
+    // 綁定事件
+    document.getElementById('btnAddPerson').addEventListener('click', addPerson);
+    document.getElementById('btnAddCourse').addEventListener('click', addCourse);
+    document.getElementById('btnSetSalary').addEventListener('click', setSalary);
+    document.getElementById('btnSetExpense').addEventListener('click', setExpense);
+    document.getElementById('btnSetStartMonth').addEventListener('click', setStartMonth);
+    document.getElementById('btnCalculate').addEventListener('click', calculate);
+    document.getElementById('btnExportCsv').addEventListener('click', exportCsv);
+
+    // 頁面載入時初始化
+    window.onload = loadState;
+    </script>
 </body>
 </html>
