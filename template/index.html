@@ -100,7 +100,6 @@
               courseList: data.course_list || [],
             }));
           } else {
-            // 處理非 200 OK 的響應
             const errorData = await response.json().catch(() => ({ message: response.statusText }));
             console.error('Failed to fetch current state:', response.status, errorData.message);
             alert(`無法獲取最新狀態，請檢查伺服器或網路連線。錯誤：${errorData.message}`);
@@ -175,7 +174,7 @@
             await fetchCurrentState();
             return true;
           } else {
-            alert("新增課程失敗: " + (data.message || response.statusText));
+            alert("新增課程失敗: " + (data.message captions || response.statusText));
             return false;
           }
         } catch (error) {
@@ -273,25 +272,12 @@
         }
       };
 
-      // 刪除還款人 - 此功能目前僅為前端視覺移除。
-      // 若要讓後端數據也同步移除，您的 Flask 後端需要提供 /api/remove_person API。
-      // 如果沒有後端 API 支援，執行清空資料 (reset) 才是唯一清除後端數據的方法。
+      // 刪除還款人 - 此功能目前僅為前端視覺移除
       const removePerson = (index) => {
         if (!confirm(`確定要從前端列表中移除還款人「${state.repayList[index].name}」嗎？\n(注意：此操作不會同步清除後端數據，如需徹底清除請使用「清空資料」)`)) return;
         const newList = [...state.repayList];
         newList.splice(index, 1);
         setState(prev => ({ ...prev, repayList: newList }));
-        // 如果有後端刪除 API，應該在這裡調用：
-        // fetch('/api/remove_person', { method: 'POST', body: JSON.stringify({ index: index }) })
-        //   .then(response => response.json())
-        //   .then(data => {
-        //     if (data.status === 'success') {
-        //       fetchCurrentState(); // 成功後從後端重新獲取數據
-        //     } else {
-        //       alert('後端移除還款人失敗: ' + data.message);
-        //     }
-        //   })
-        //   .catch(error => console.error('Error removing person from backend:', error));
       };
 
       // 刪除課程 - 同上，後端目前沒有獨立的刪除 API
@@ -300,17 +286,6 @@
         const newList = [...state.courseList];
         newList.splice(index, 1);
         setState(prev => ({ ...prev, courseList: newList }));
-        // 如果有後端刪除 API，應該在這裡調用：
-        // fetch('/api/remove_course', { method: 'POST', body: JSON.stringify({ index: index }) })
-        //   .then(response => response.json())
-        //   .then(data => {
-        //     if (data.status === 'success') {
-        //       fetchCurrentState(); // 成功後從後端重新獲取數據
-        //     } else {
-        //       alert('後端移除課程失敗: ' + data.message);
-        //     }
-        //   })
-        //   .catch(error => console.error('Error removing course from backend:', error));
       };
 
       // 計算還款試算表 - 呼叫後端 API
@@ -363,16 +338,15 @@
           });
           if (response.ok) {
             const contentDisposition = response.headers.get('Content-Disposition');
-            let filename = 'repay_result.csv'; // 預設檔名
+            let filename = 'repay_result.csv';
             if (contentDisposition && contentDisposition.includes('filename=')) {
                 filename = contentDisposition.split('filename=')[1].trim().replace(/"/g, '');
             }
-
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = filename; // 使用後端提供的檔名
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
             a.remove();
@@ -401,8 +375,8 @@
           });
           const data = await response.json();
           if (response.ok && data.status === 'success') {
-            await fetchCurrentState(); // 清空後從後端重新獲取初始狀態
-            setState(prev => ({ ...prev, calculationResult: '' })); // 清空試算結果
+            await fetchCurrentState();
+            setState(prev => ({ ...prev, calculationResult: '' }));
             alert(data.message);
           } else {
             alert("清空資料失敗: " + (data.message || response.statusText));
@@ -413,15 +387,22 @@
         }
       };
 
-      // 離開應用程式（瀏覽器行為）
+      // 離開應用程式
       const exitApp = () => {
         if (confirm('確定離開？')) {
-          // window.close() 只能關閉由腳本開啟的視窗，對於用戶手動開啟的頁面可能無效
-          // 更好的做法是導向一個空白頁或提示用戶手動關閉
           window.location.href = 'about:blank';
-          // 或者直接提示，不嘗試關閉
-          // alert('感謝使用！請手動關閉瀏覽器標籤頁。');
         }
+      };
+
+      // 解析 calculationResult 為表格數據
+      const parseResultToTable = (result) => {
+        if (!result || result.trim() === '') {
+          return { headers: [], rows: [] };
+        }
+        const lines = result.trim().split('\n');
+        const headers = lines[0].split('\t').map(h => h.trim());
+        const rows = lines.slice(1).map(line => line.split('\t').map(cell => cell.trim()));
+        return { headers, rows };
       };
 
       // Modal 內部表單元件
@@ -455,7 +436,6 @@
           }
           if (success) {
               closeModal();
-              // fetchCurrentState() 已經在各自的 API 呼叫函數中執行
           }
         };
 
@@ -465,8 +445,8 @@
         let placeholder1 = '';
         let placeholder2 = '';
         let showInput2 = true;
-        let input1Type = 'text'; // Default type
-        let input2Type = 'number'; // Default type
+        let input1Type = 'text';
+        let input2Type = 'number';
 
         switch (state.modalType) {
           case 'addPerson':
@@ -524,7 +504,6 @@
                   placeholder={placeholder1}
                   className="w-full border rounded px-2 py-1"
                   autoFocus
-                  // 根據類型設置初始值
                   defaultValue={
                     state.modalType === 'setSalary' ? state.salary :
                     state.modalType === 'setLivingExpense' ? state.livingExpense :
@@ -575,7 +554,6 @@
             >
               薪水：{state.salary.toFixed(0)}
             </button>
-
             <button
               className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 whitespace-nowrap"
               onClick={() => openModal('setLivingExpense')}
@@ -583,7 +561,6 @@
             >
               生活費：{state.livingExpense.toFixed(0)}
             </button>
-
             <button
               className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 whitespace-nowrap"
               onClick={() => openModal('setStartMonth')}
@@ -591,7 +568,6 @@
             >
               起始月：{state.startMonth}
             </button>
-
             <button
               className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 whitespace-nowrap"
               onClick={() => openModal('addPerson')}
@@ -599,7 +575,6 @@
             >
               新增還款人
             </button>
-
             <button
               className="bg-pink-600 text-white px-4 py-2 rounded hover:bg-pink-700 whitespace-nowrap"
               onClick={() => openModal('addCourse')}
@@ -607,7 +582,6 @@
             >
               新增課程費用
             </button>
-
             <button
               className="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700 whitespace-nowrap"
               onClick={calculate}
@@ -615,7 +589,6 @@
             >
               計算試算
             </button>
-
             <button
               className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 whitespace-nowrap"
               onClick={copyResult}
@@ -623,7 +596,6 @@
             >
               複製結果
             </button>
-
             <button
               className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 whitespace-nowrap"
               onClick={exportCsv}
@@ -631,7 +603,6 @@
             >
               匯出CSV
             </button>
-
             <button
               className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 whitespace-nowrap"
               onClick={clearAll}
@@ -639,7 +610,6 @@
             >
               清空資料
             </button>
-
             <button
               className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800 whitespace-nowrap"
               onClick={exitApp}
@@ -718,14 +688,48 @@
           </div>
 
           {/* 試算結果區 */}
-          <div className="flex-grow bg-white rounded shadow p-4 overflow-auto">
+          <div className="flex-grow bg-white rounded shadow p-4 overflow-x-auto">
             <h2 className="text-xl font-semibold mb-3">試算結果</h2>
-            <textarea
-              readOnly
-              className="w-full h-64 resize-none border rounded p-2 font-mono"
-              value={state.calculationResult}
-              placeholder="試算結果會顯示於此..."
-            />
+            {state.calculationResult ? (
+              (() => {
+                const { headers, rows } = parseResultToTable(state.calculationResult);
+                if (headers.length === 0 && rows.length === 0) {
+                  return <p className="text-gray-500">無試算結果，請先執行計算。</p>;
+                }
+                return (
+                  <table className="w-full text-sm text-left border-collapse">
+                    <thead className="bg-gray-100 sticky top-0">
+                      <tr>
+                        {headers.map((header, index) => (
+                          <th key={index} className="p-3 font-semibold border-b border-gray-200 whitespace-nowrap">
+                            {header}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((row, rowIndex) => (
+                        <tr
+                          key={rowIndex}
+                          className={rowIndex % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
+                        >
+                          {row.map((cell, cellIndex) => (
+                            <td
+                              key={cellIndex}
+                              className="p-3 border-b border-gray-200 whitespace-nowrap"
+                            >
+                              {cell}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                );
+              })()
+            ) : (
+              <p className="text-gray-500">無試算結果，請先執行計算。</p>
+            )}
           </div>
 
           {/* Modal */}
@@ -791,7 +795,6 @@
       document.getElementById('cookie-banner').style.display = 'none';
     }
 
-    // 判斷是否已做出選擇
     if (localStorage.getItem('cookieConsent')) {
       document.getElementById('cookie-banner').style.display = 'none';
     }
