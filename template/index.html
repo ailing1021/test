@@ -1,275 +1,458 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>💖 超可愛還款試算</title>
-  <link rel="stylesheet" href="/static/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      background: #fff0f5 url('/static/cute-bg.png') repeat;
-      font-family: "Microsoft JhengHei", sans-serif;
-      color: #444;
-      margin: 0;
-      padding: 0;
-    }
-    h1 {
-      color: #ff6699;
-      text-align: center;
-      padding: 20px 0 10px;
-    }
-    .container {
-      max-width: 600px;
-      margin: auto;
-      background: #fff;
-      border-radius: 20px;
-      padding: 20px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.1);
-    }
-    input[type="number"], input[type="text"] {
-      width: calc(100% - 20px);
-      padding: 8px;
-      margin-bottom: 10px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-    }
-    button {
-      background: #ff99bb;
-      border: none;
-      padding: 12px;
-      color: white;
-      font-size: 18px;
-      border-radius: 10px;
-      width: 100%;
-      margin-top: 10px;
-    }
-    .debtor-box {
-      border: 1px dashed #ffaacc;
-      padding: 10px;
-      margin-bottom: 10px;
-      border-radius: 10px;
-    }
-    .result-box {
-      background: #fffafc;
-      border: 1px solid #ffaacc;
-      border-radius: 10px;
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+<title>💰 Q版還款試算表</title>
+<style>
+  /* Reset */
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    background: #f9f6f2;
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+    margin: 0; padding: 0;
+    color: #444;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+  }
+  header {
+    background: #ff9f9f;
+    padding: 18px 20px;
+    text-align: center;
+    font-size: 1.6rem;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 3px #a03232;
+    box-shadow: 0 3px 6px rgba(255,0,0,0.2);
+  }
+  main {
+    flex: 1;
+    padding: 15px 20px;
+    max-width: 600px;
+    margin: 12px auto;
+    background: white;
+    border-radius: 18px;
+    box-shadow: 0 6px 15px #f1b7b7cc;
+  }
+  h2 {
+    color: #d14a4a;
+    font-weight: 900;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+  }
+
+  label {
+    display: block;
+    margin: 12px 0 6px 0;
+    font-weight: 600;
+  }
+  input[type="number"], input[type="text"], select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid #f1b7b7;
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+  }
+  input[type="number"]:focus, input[type="text"]:focus, select:focus {
+    border-color: #ff6f6f;
+    outline: none;
+  }
+  button {
+    margin-top: 14px;
+    background: #ff6f6f;
+    border: none;
+    color: white;
+    font-weight: 700;
+    padding: 12px 0;
+    width: 100%;
+    border-radius: 24px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    box-shadow: 0 5px 12px #d14a4aaa;
+    transition: background-color 0.3s ease;
+  }
+  button:hover {
+    background: #e04a4a;
+  }
+
+  /* 動態列表樣式 */
+  .list-group {
+    margin: 10px 0 20px 0;
+  }
+  .list-item {
+    background: #ffe7e7;
+    border-radius: 14px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 1px 1px 6px #ff9f9f80;
+  }
+  .list-item input {
+    border: 1.5px solid #ff9f9f;
+    border-radius: 8px;
+    padding: 6px 10px;
+    width: 40%;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+  .list-item small {
+    font-size: 0.85rem;
+    color: #a04a4a;
+    flex-grow: 1;
+  }
+  .btn-remove {
+    background: #f86f6f;
+    border: none;
+    color: white;
+    border-radius: 50%;
+    width: 26px;
+    height: 26px;
+    font-weight: 900;
+    font-size: 1.3rem;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 2px 5px #b44343aa;
+    transition: background-color 0.3s ease;
+  }
+  .btn-remove:hover {
+    background: #d13838;
+  }
+
+  /* 結果區 */
+  #result {
+    margin-top: 20px;
+    white-space: pre-wrap;
+    font-family: 'Courier New', Courier, monospace;
+    background: #fff0f0;
+    border: 2px dashed #ff6f6f;
+    border-radius: 16px;
+    padding: 18px 20px;
+    color: #a02a2a;
+    font-weight: 700;
+    box-shadow: inset 0 0 12px #ff8c8c66;
+  }
+
+  /* footer 隱私權 */
+  footer {
+    text-align: center;
+    font-size: 0.9rem;
+    padding: 14px 10px;
+    background: #ffbaba55;
+    color: #7a2f2f;
+    margin-top: auto;
+    box-shadow: inset 0 1px 4px #ffbabacc;
+  }
+  footer a {
+    color: #d14a4a;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  footer a:hover {
+    text-decoration: underline;
+  }
+
+  /* 手機優化 */
+  @media (max-width: 480px) {
+    main {
+      margin: 8px 12px;
       padding: 15px;
-      margin-top: 20px;
-      white-space: pre-line;
+      border-radius: 14px;
+      font-size: 0.95rem;
     }
-    .chart-box {
-      text-align: center;
-      margin-top: 20px;
+    .list-item input {
+      width: 45%;
     }
-    footer {
-      text-align: center;
-      padding: 20px;
-      font-size: 14px;
-      color: #999;
-    }
-    footer a {
-      color: #ff6699;
-      text-decoration: none;
-      margin: 0 8px;
-    }
-  </style>
+  }
+</style>
 </head>
-
 <body>
-  <h1>💖 超可愛還款試算表</h1>
-  <div class="container">
-    <label>月薪資：</label>
-    <input type="number" id="salary" placeholder="輸入你的月薪">
 
-    <label>每月生活費：</label>
-    <input type="number" id="expense" placeholder="輸入每月生活費">
+<header>💰 Q版還款試算表</header>
 
-    <div id="debtors"></div>
+<main>
 
+  <section>
+    <h2>基本資料輸入</h2>
+    <label for="salary">每月薪資 (元)</label>
+    <input type="number" id="salary" min="0" placeholder="請輸入每月薪資" />
 
-很好！我就幫你把**功能超齊全、Q版介面、圓餅圖、隱私權&服務條款置底、支援不限債務人數自由新增刪除**的 `index.html` 完整版一次寫好。直接貼上就能用，搭配你後端 Flask API 即可：
+    <label for="livingExpense">每月生活費 (元)</label>
+    <input type="number" id="livingExpense" min="0" placeholder="請輸入每月生活費" />
+  </section>
 
----
+  <section>
+    <h2>債務人清單</h2>
+    <div id="debtorsList" class="list-group"></div>
+    <button id="addDebtorBtn" type="button">＋ 新增債務人</button>
+  </section>
 
-## 📦 完整 `index.html` 超齊全完整版 ✅
+  <section>
+    <h2>課程清單</h2>
+    <div id="coursesList" class="list-group"></div>
+    <button id="addCourseBtn" type="button">＋ 新增課程</button>
+  </section>
 
-```html
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>💖 超可愛還款試算表</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      background: #fff0f5 url('/static/cute-bg.png') repeat;
-      font-family: "Microsoft JhengHei", sans-serif;
-      color: #444;
-      margin: 0;
-      padding: 0;
+  <button id="calculateBtn" type="button">開始計算</button>
+
+  <pre id="result" aria-live="polite" aria-label="計算結果區"></pre>
+
+</main>
+
+<footer>
+  <a href="privacy.html" target="_blank" rel="noopener noreferrer">隱私權政策</a> | 
+  <a href="terms.html" target="_blank" rel="noopener noreferrer">服務條款</a>
+</footer>
+
+<script>
+  // 動態新增債務人
+  const debtorsList = document.getElementById('debtorsList');
+  const addDebtorBtn = document.getElementById('addDebtorBtn');
+  let debtorCount = 0;
+
+  function createDebtorItem(name = '', amount = '') {
+    debtorCount++;
+    const div = document.createElement('div');
+    div.className = 'list-item';
+    div.dataset.id = debtorCount;
+    div.innerHTML = `
+      <input type="text" placeholder="債務人姓名" value="${name}" aria-label="債務人姓名" />
+      <input type="number" min="0" placeholder="債務金額" value="${amount}" aria-label="債務金額" />
+      <button class="btn-remove" aria-label="刪除債務人">&times;</button>
+    `;
+    div.querySelector('.btn-remove').onclick = () => {
+      debtorsList.removeChild(div);
+    };
+    return div;
+  }
+
+  addDebtorBtn.onclick = () => {
+    debtorsList.appendChild(createDebtorItem());
+  };
+
+  // 動態新增課程
+  const coursesList = document.getElementById('coursesList');
+  const addCourseBtn = document.getElementById('addCourseBtn');
+  let courseCount = 0;
+
+  function createCourseItem(name = '', amount = '') {
+    courseCount++;
+    const div = document.createElement('div');
+    div.className = 'list-item';
+    div.dataset.id = courseCount;
+    div.innerHTML = `
+      <input type="text" placeholder="課程名稱" value="${name}" aria-label="課程名稱" />
+      <input type="number" min="0" placeholder="課程總費用" value="${amount}" aria-label="課程總費用" />
+      <button class="btn-remove" aria-label="刪除課程">&times;</button>
+    `;
+    div.querySelector('.btn-remove').onclick = () => {
+      coursesList.removeChild(div);
+    };
+    return div;
+  }
+
+  addCourseBtn.onclick = () => {
+    coursesList.appendChild(createCourseItem());
+  };
+
+  // 計算邏輯
+  const calculateBtn = document.getElementById('calculateBtn');
+  const resultPre = document.getElementById('result');
+
+  calculateBtn.onclick = () => {
+    // 取得輸入
+    const salary = parseFloat(document.getElementById('salary').value);
+    const livingExpense = parseFloat(document.getElementById('livingExpense').value);
+    if (isNaN(salary) || salary <= 0) {
+      alert('請輸入正確的每月薪資');
+      return;
     }
-    h1 {
-      color: #ff6699;
-      text-align: center;
-      padding: 20px 0 10px;
+    if (isNaN(livingExpense) || livingExpense < 0) {
+      alert('請輸入正確的每月生活費');
+      return;
     }
-    .container {
-      max-width: 700px;
-      margin: auto;
-      background: #fff;
-      border-radius: 20px;
-      padding: 20px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.1);
-    }
-    input[type="number"], input[type="text"] {
-      width: calc(100% - 20px);
-      padding: 8px;
-      margin-bottom: 10px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-    }
-    button {
-      background: #ff99bb;
-      border: none;
-      padding: 12px;
-      color: white;
-      font-size: 18px;
-      border-radius: 10px;
-      width: 100%;
-      margin-top: 10px;
-      cursor: pointer;
-    }
-    .debtor-box {
-      border: 1px dashed #ffaacc;
-      padding: 10px;
-      margin-bottom: 10px;
-      border-radius: 10px;
-      position: relative;
-    }
-    .remove-btn {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background: #ff6666;
-      border: none;
-      color: white;
-      padding: 3px 8px;
-      border-radius: 50%;
-      cursor: pointer;
-    }
-    .result-box {
-      background: #fffafc;
-      border: 1px solid #ffaacc;
-      border-radius: 10px;
-      padding: 15px;
-      margin-top: 20px;
-      white-space: pre-line;
-    }
-    .chart-box {
-      text-align: center;
-      margin-top: 20px;
-    }
-    footer {
-      text-align: center;
-      padding: 30px 10px 20px;
-      font-size: 14px;
-      color: #999;
-    }
-    footer a {
-      color: #ff6699;
-      text-decoration: none;
-      margin: 0 8px;
-    }
-  </style>
-</head>
-
-<body>
-  <h1>💖 超可愛還款試算表</h1>
-  <div class="container">
-    <label>月薪資：</label>
-    <input type="number" id="salary" placeholder="輸入你的月薪">
-
-    <label>每月生活費：</label>
-    <input type="number" id="expense" placeholder="輸入每月生活費">
-
-    <div id="debtors"></div>
-    <button onclick="addDebtor()">➕ 新增債務人</button>
-    <button onclick="submitData()">📊 開始計算</button>
-
-    <div class="result-box" id="result"></div>
-
-    <div class="chart-box">
-      <canvas id="pieChart" width="400" height="400"></canvas>
-    </div>
-  </div>
-
-  <footer>
-    <a href="/privacy.html" target="_blank">隱私權政策</a> | 
-    <a href="/terms.html" target="_blank">服務條款</a>
-  </footer>
-
-  <script>
-    function addDebtor() {
-      const container = document.getElementById("debtors");
-      const box = document.createElement("div");
-      box.className = "debtor-box";
-      box.innerHTML = `
-        <input type="text" placeholder="債務人名稱">
-        <input type="number" placeholder="債務金額">
-        <button class="remove-btn" onclick="this.parentElement.remove()">✖</button>
-      `;
-      container.appendChild(box);
+    if (livingExpense > salary) {
+      alert('生活費不可大於薪資');
+      return;
     }
 
-    function submitData() {
-      const salary = parseFloat(document.getElementById("salary").value);
-      const expense = parseFloat(document.getElementById("expense").value);
-      const debtorElements = document.querySelectorAll(".debtor-box");
-
-      const debts = [];
-      debtorElements.forEach(el => {
-        const name = el.querySelector('input[type="text"]').value;
-        const amount = parseFloat(el.querySelector('input[type="number"]').value);
-        if (name && amount) debts.push({ name, amount });
-      });
-
-      if (isNaN(salary) || isNaN(expense) || debts.length === 0) {
-        alert("請完整填寫薪資、生活費與債務人資料！");
+    // 取得債務人資料
+    const debtorDivs = debtorsList.querySelectorAll('.list-item');
+    if (debtorDivs.length === 0) {
+      alert('請至少新增一個債務人');
+      return;
+    }
+    const debtors = [];
+    for (const dDiv of debtorDivs) {
+      const inputs = dDiv.querySelectorAll('input');
+      const name = inputs[0].value.trim();
+      const amount = parseFloat(inputs[1].value);
+      if (!name) {
+        alert('債務人姓名不可空白');
         return;
       }
-
-      fetch('/api/calculate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ salary, expense, debts })
-      })
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById("result").innerText = data.result;
-        updateChart(debts);
-      });
+      if (isNaN(amount) || amount <= 0) {
+        alert('債務金額需大於0');
+        return;
+      }
+      debtors.push({ name, amount, remaining: amount });
     }
 
-    function updateChart(debts) {
-      const ctx = document.getElementById("pieChart").getContext("2d");
-      const labels = debts.map(d => d.name);
-      const amounts = debts.map(d => d.amount);
-      new Chart(ctx, {
-        type: "pie",
-        data: {
-          labels: labels,
-          datasets: [{
-            data: amounts,
-            backgroundColor: [
-              "#ff99bb", "#ffcc99", "#99ccff", "#ccffcc", "#ffccff",
-              "#ffff99", "#66cccc", "#ff9999"
-            ]
-          }]
+    // 取得課程資料
+    const courseDivs = coursesList.querySelectorAll('.list-item');
+    const courses = [];
+    for (const cDiv of courseDivs) {
+      const inputs = cDiv.querySelectorAll('input');
+      const name = inputs[0].value.trim();
+      const amount = parseFloat(inputs[1].value);
+      if (!name) {
+        alert('課程名稱不可空白');
+        return;
+      }
+      if (isNaN(amount) || amount < 0) {
+        alert('課程費用不可小於0');
+        return;
+      }
+      courses.push({ name, amount, remaining: amount });
+    }
+
+    // 計算可支配收入
+    const disposableIncome = salary - livingExpense;
+    if (disposableIncome <= 0) {
+      alert('薪資扣除生活費後無可支配收入');
+      return;
+    }
+
+    // 計算每月課程費用總和
+    const totalCourseMonthlyPayment = courses.length > 0 ? courses.reduce((acc, c) => acc + (c.amount / 30), 0) : 0;
+
+    // 每月可用還款金額 = 可支配收入 - 課程每月繳費總和
+    if (disposableIncome < totalCourseMonthlyPayment) {
+      alert('可支配收入不足以支付所有課程每月繳費');
+      return;
+    }
+    const repaymentMonthly = disposableIncome - totalCourseMonthlyPayment;
+
+    // 用簡易均分還款法，每月還款均分給債務人（剩餘債務還清後該債務人不再分配）
+    const results = [];
+    let month = 1;
+    const maxMonths = 60; // 最多計算60個月，避免無限迴圈
+    while (month <= maxMonths) {
+      let monthStr = '';
+      const currentYearMonth = addMonthsToCurrent(month - 1);
+      monthStr += `月份: ${currentYearMonth} (第 ${month} 月)\n`;
+      monthStr += `  薪資: ${salary.toFixed(2)} 元\n`;
+      monthStr += `  生活費: ${livingExpense.toFixed(2)} 元\n`;
+      monthStr += `  可支配收入: ${disposableIncome.toFixed(2)} 元\n`;
+      if (courses.length > 0) {
+        monthStr += `  課程繳納:\n`;
+        for (const c of courses) {
+          if (c.remaining > 0) {
+            const monthlyPay = c.amount / 30;
+            const payNow = monthlyPay > c.remaining ? c.remaining : monthlyPay;
+            monthStr += `    - ${c.name}: ${payNow.toFixed(2)} 元\n`;
+            c.remaining -= payNow;
+          }
         }
-      });
+      }
+      // 計算還款人分配
+      let totalRemainingDebt = debtors.reduce((acc, d) => acc + d.remaining, 0);
+      if (totalRemainingDebt <= 0 && courses.every(c => c.remaining <= 0)) {
+        // 全部還清，結束
+        break;
+      }
+
+      const activeDebtors = debtors.filter(d => d.remaining > 0);
+      let monthlyRepay = repaymentMonthly;
+      let monthRepaymentStr = `  還款人分配:\n`;
+      for (const debtor of activeDebtors) {
+        // 均分比例
+        const share = debtor.remaining / totalRemainingDebt;
+        let payAmount = repaymentMonthly * share;
+        if (payAmount > debtor.remaining) payAmount = debtor.remaining;
+        debtor.remaining -= payAmount;
+        monthlyRepay -= payAmount;
+        monthRepaymentStr += `    - ${debtor.name}: ${payAmount.toFixed(2)} 元\n`;
+      }
+
+      monthStr += monthRepaymentStr;
+
+      const monthlyTotal = repaymentMonthly + totalCourseMonthlyPayment;
+      monthStr += `  當月總計還款/繳費: ${monthlyTotal.toFixed(2)} 元\n`;
+      const remainIncome = disposableIncome - monthlyTotal;
+      monthStr += `  當月剩餘可支配收入: ${remainIncome.toFixed(2)} 元\n`;
+
+      // 還款人剩餘債務
+      monthStr += `  還款人剩餘債務:\n`;
+      for (const d of debtors) {
+        monthStr += `    - ${d.name}: ${d.remaining.toFixed(2)} 元\n`;
+      }
+      // 課程剩餘費用
+      if (courses.length > 0) {
+        monthStr += `  課程剩餘費用:\n`;
+        for (const c of courses) {
+          monthStr += `    - ${c.name}: ${c.remaining.toFixed(2)} 元\n`;
+        }
+      }
+
+      monthStr += '--------------------------------------\n';
+      results.push(monthStr);
+
+      month++;
     }
-  </script>
+
+    // 總月數
+    const totalMonths = month - 1;
+
+    // 還款人還清時間（假設當月為本月起算）
+    const payOffTimes = debtors.map(d => {
+      const clearedMonth = totalMonths; // 用全部計算結果最後一個月估算
+      const yearMonth = addMonthsToCurrent(calculateMonthsToClear(d.amount, repaymentMonthly * (d.amount / debtors.reduce((a,b) => a+b.amount,0))));
+      return `   - ${d.name}: ${yearMonth} 還清`;
+    });
+
+    // 課程繳清時間
+    const coursePayOffTimes = courses.filter(c => c.amount > 0).map(c => {
+      const months = Math.ceil(c.amount / (c.amount / 30));
+      const yearMonth = addMonthsToCurrent(months);
+      return `   - ${c.name}: ${yearMonth} 繳清`;
+    });
+
+    // 顯示結果
+    let finalText = `還款試算結果：\n\n`;
+    finalText += `總月數：${totalMonths} 個月\n\n`;
+    finalText += `還款人還清時間：\n${payOffTimes.join('\n') || '無'}\n\n`;
+    finalText += `課程繳清時間：\n${coursePayOffTimes.join('\n') || '無'}\n\n`;
+    finalText += `每月詳細還款計畫：\n`;
+    finalText += results.join('');
+
+    resultPre.textContent = finalText;
+  };
+
+  // 工具：取得 yyyy/mm 格式，+ monthCount 月
+  function addMonthsToCurrent(monthCount) {
+    const d = new Date();
+    d.setMonth(d.getMonth() + monthCount);
+    const yyyy = d.getFullYear();
+    const mm = d.getMonth() + 1;
+    return `${yyyy}/${mm.toString().padStart(2,'0')}`;
+  }
+
+  // 工具：估算還清月數 (粗估)
+  function calculateMonthsToClear(amount, monthlyPayment) {
+    if(monthlyPayment <= 0) return 9999;
+    return Math.ceil(amount / monthlyPayment);
+  }
+
+  // 預設加一筆債務人、課程方便測試
+  debtorsList.appendChild(createDebtorItem("小明", 120000));
+  coursesList.appendChild(createCourseItem("Python課程", 30000));
+</script>
+
 </body>
 </html>
