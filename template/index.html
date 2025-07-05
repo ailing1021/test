@@ -578,49 +578,35 @@
     }
   }
 
-  // 每月詳細還款計畫
-  text += `\n📖 每月詳細還款計畫：\n`;
-  calcResult.monthlyPlans.forEach((plan, index) => {
-    text += `📆 ${plan.year}/${String(plan.month).padStart(2, '0')} (第 ${index + 1} 月)\n`;
-    text += `💰 可支配收入：${plan.disposableIncome.toFixed(2)} 元\n`;
+  // 每月還款分配明細
+  text += `\n📖 每月還款分配：\n`;
+  state.monthRecords.forEach((rec, index) => {
+    text += `📆 ${rec.year}/${String(rec.month).padStart(2, '0')} (第 ${index + 1} 月)\n`;
 
-    if (Object.keys(plan.coursePayment).length) {
-      text += `📘 課程繳納：\n`;
-      for (const [course, amount] of Object.entries(plan.coursePayment)) {
-        text += `  - ${course}: ${amount.toFixed(2)} 元\n`;
+    // 債務人還款
+    const repayers = Object.entries(rec.debtsRemaining);
+    repayers.forEach(([name], idx) => {
+      const prevDebt = index > 0 ? state.monthRecords[index - 1].debtsRemaining[name] : state.debtors.find(d => d.name === name)?.debt || 0;
+      const paid = prevDebt - rec.debtsRemaining[name];
+      if (paid > 0.001) {
+        text += `  💳 ${name} 繳 ${paid.toFixed(2)} 元\n`;
       }
-    }
+    });
 
-    if (Object.keys(plan.repayerPayment).length) {
-      text += `💳 還款人分配：\n`;
-      for (const [name, amount] of Object.entries(plan.repayerPayment)) {
-        text += `  - ${name}: ${amount.toFixed(2)} 元\n`;
+    // 課程繳費
+    rec.coursesRemaining.forEach((course, idx) => {
+      const prevFee = index > 0 ? state.monthRecords[index - 1].coursesRemaining[idx].remainingFee : state.courses[idx]?.fee || 0;
+      const paid = prevFee - course.remainingFee;
+      if (paid > 0.001) {
+        text += `  📘 ${course.name} 繳 ${paid.toFixed(2)} 元\n`;
       }
-    }
-
-    text += `📊 當月總計繳納：${plan.totalPayment.toFixed(2)} 元\n`;
-    text += `💸 剩餘可支配收入：${plan.remainingIncome.toFixed(2)} 元\n`;
-
-    if (Object.keys(plan.repayRemaining).length) {
-      text += `📌 還款人剩餘債務：\n`;
-      for (const [name, debt] of Object.entries(plan.repayRemaining)) {
-        text += `  - ${name}: ${debt.toFixed(2)} 元\n`;
-      }
-    }
-
-    if (Object.keys(plan.courseRemaining).length) {
-      text += `📚 課程剩餘費用：\n`;
-      for (const [course, debt] of Object.entries(plan.courseRemaining)) {
-        text += `  - ${course}: ${debt.toFixed(2)} 元\n`;
-      }
-    }
+    });
 
     text += `━━━━━━━━━━━━━━━━━━━━━\n`;
   });
 
   resultArea.textContent = text;
 }
-
   // 繪製圓餅圖 (債務比例)
   function renderPieChart() {
     if (pieChart) {
