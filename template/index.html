@@ -328,7 +328,7 @@
       return;
     }
 
-    // 計算每月課程費用總和
+    // 課程每月繳費（假設30個月均攤）
     const totalCourseMonthlyPayment = courses.length > 0 ? courses.reduce((acc, c) => acc + (c.amount / 30), 0) : 0;
 
     // 每月可用還款金額 = 可支配收入 - 課程每月繳費總和
@@ -338,17 +338,23 @@
     }
     const repaymentMonthly = disposableIncome - totalCourseMonthlyPayment;
 
-    // 用簡易均分還款法，每月還款均分給債務人（剩餘債務還清後該債務人不再分配）
+    // 計算還款計畫（均分法）
     const results = [];
     let month = 1;
-    const maxMonths = 60; // 最多計算60個月，避免無限迴圈
+    const maxMonths = 60; // 最多60個月，避免無限迴圈
     while (month <= maxMonths) {
-      let monthStr = '';
       const currentYearMonth = addMonthsToCurrent(month - 1);
-      monthStr += `月份: ${currentYearMonth} (第 ${month} 月)\n`;
+
+      // 如果所有債務與課程均還清，跳出
+      let totalDebtRemaining = debtors.reduce((acc, d) => acc + d.remaining, 0);
+      let totalCourseRemaining = courses.reduce((acc, c) => acc + c.remaining, 0);
+      if (totalDebtRemaining <= 0 && totalCourseRemaining <= 0) break;
+
+      let monthStr = `月份: ${currentYearMonth} (第 ${month} 月)\n`;
       monthStr += `  薪資: ${salary.toFixed(2)} 元\n`;
       monthStr += `  生活費: ${livingExpense.toFixed(2)} 元\n`;
       monthStr += `  可支配收入: ${disposableIncome.toFixed(2)} 元\n`;
+
       if (courses.length > 0) {
         monthStr += `  課程繳納:\n`;
         for (const c of courses) {
@@ -360,39 +366,29 @@
           }
         }
       }
-      // 計算還款人分配
-      let totalRemainingDebt = debtors.reduce((acc, d) => acc + d.remaining, 0);
-      if (totalRemainingDebt <= 0 && courses.every(c => c.remaining <= 0)) {
-        // 全部還清，結束
-        break;
-      }
 
+      // 債務人均分還款
       const activeDebtors = debtors.filter(d => d.remaining > 0);
-      let monthlyRepay = repaymentMonthly;
-      let monthRepaymentStr = `  還款人分配:\n`;
-      for (const debtor of activeDebtors) {
-        // 均分比例
-        const share = debtor.remaining / totalRemainingDebt;
+      let totalDebtRem = activeDebtors.reduce((acc, d) => acc + d.remaining, 0);
+      monthStr += `  還款人分配:\n`;
+      for (const d of activeDebtors) {
+        let share = d.remaining / totalDebtRem;
         let payAmount = repaymentMonthly * share;
-        if (payAmount > debtor.remaining) payAmount = debtor.remaining;
-        debtor.remaining -= payAmount;
-        monthlyRepay -= payAmount;
-        monthRepaymentStr += `    - ${debtor.name}: ${payAmount.toFixed(2)} 元\n`;
+        if (payAmount > d.remaining) payAmount = d.remaining;
+        d.remaining -= payAmount;
+        monthStr += `    - ${d.name}: ${payAmount.toFixed(2)} 元\n`;
       }
-
-      monthStr += monthRepaymentStr;
 
       const monthlyTotal = repaymentMonthly + totalCourseMonthlyPayment;
       monthStr += `  當月總計還款/繳費: ${monthlyTotal.toFixed(2)} 元\n`;
       const remainIncome = disposableIncome - monthlyTotal;
       monthStr += `  當月剩餘可支配收入: ${remainIncome.toFixed(2)} 元\n`;
 
-      // 還款人剩餘債務
       monthStr += `  還款人剩餘債務:\n`;
       for (const d of debtors) {
         monthStr += `    - ${d.name}: ${d.remaining.toFixed(2)} 元\n`;
       }
-      // 課程剩餘費用
+
       if (courses.length > 0) {
         monthStr += `  課程剩餘費用:\n`;
         for (const c of courses) {
@@ -406,24 +402,20 @@
       month++;
     }
 
-    // 總月數
     const totalMonths = month - 1;
 
-    // 還款人還清時間（假設當月為本月起算）
+    // 還清時間（粗估）
+    const totalDebt = debtors.reduce((a,b) => a + b.amount, 0);
     const payOffTimes = debtors.map(d => {
-      const clearedMonth = totalMonths; // 用全部計算結果最後一個月估算
-      const yearMonth = addMonthsToCurrent(calculateMonthsToClear(d.amount, repaymentMonthly * (d.amount / debtors.reduce((a,b) => a+b.amount,0))));
-      return `   - ${d.name}: ${yearMonth} 還清`;
+      const estMonth = calculateMonthsToClear(d.amount, repaymentMonthly * (d.amount / totalDebt));
+      return `   - ${d.name}: ${addMonthsToCurrent(estMonth)} 還清`;
     });
 
-    // 課程繳清時間
     const coursePayOffTimes = courses.filter(c => c.amount > 0).map(c => {
-      const months = Math.ceil(c.amount / (c.amount / 30));
-      const yearMonth = addMonthsToCurrent(months);
-      return `   - ${c.name}: ${yearMonth} 繳清`;
+      const estMonth = Math.ceil(c.amount / (c.amount / 30));
+      return `   - ${c.name}: ${addMonthsToCurrent(estMonth)} 繳清`;
     });
 
-    // 顯示結果
     let finalText = `還款試算結果：\n\n`;
     finalText += `總月數：${totalMonths} 個月\n\n`;
     finalText += `還款人還清時間：\n${payOffTimes.join('\n') || '無'}\n\n`;
@@ -449,9 +441,6 @@
     return Math.ceil(amount / monthlyPayment);
   }
 
-  // 預設加一筆債務人、課程方便測試
-  debtorsList.appendChild(createDebtorItem("小明", 120000));
-  coursesList.appendChild(createCourseItem("Python課程", 30000));
 </script>
 
 </body>
