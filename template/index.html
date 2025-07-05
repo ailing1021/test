@@ -554,29 +554,72 @@
 
   // 顯示結果到頁面
   function displayResults(calcResult) {
-    let text = `📅 計算起始月份：${state.startMonth} 月\n`;
-    text += `💰 薪資：${state.salary.toLocaleString()} 元\n`;
-    text += `🏠 生活費：${state.livingExpense.toLocaleString()} 元\n`;
-    text += `🔢 總還款期數：約 ${calcResult.monthCount} 個月\n\n`;
+  let text = `📅 計算起始月份：${state.startMonth} 月\n`;
+  text += `💰 薪資：${state.salary.toLocaleString()} 元\n`;
+  text += `🏠 生活費：${state.livingExpense.toLocaleString()} 元\n`;
+  text += `🔢 總還款期數：約 ${calcResult.monthCount} 個月\n\n`;
 
-    text += '📌 債務人還款完成時間：\n';
+  // 還款人還清時間
+  text += '💳 債務人還清時間：\n';
+  if (Object.keys(calcResult.repayCompletionDates).length === 0) {
+    text += '  無債務人或債務已清。\n';
+  } else {
     for (const [name, date] of Object.entries(calcResult.repayCompletionDates)) {
-      text += `  - ${name} ：${date.year} 年 ${date.month} 月\n`;
+      text += `  - ${name} 🗓️ ${date.year}/${String(date.month).padStart(2, '0')} 還清\n`;
     }
-    if (Object.keys(calcResult.repayCompletionDates).length === 0) {
-      text += '  無債務人或債務已清。\n';
-    }
-
-    text += '\n📌 課程繳費完成時間：\n';
-    for (const [name, date] of Object.entries(calcResult.courseCompletionDates)) {
-      text += `  - ${name} ：${date.year} 年 ${date.month} 月\n`;
-    }
-    if (Object.keys(calcResult.courseCompletionDates).length === 0) {
-      text += '  無課程或已繳清。\n';
-    }
-
-    resultArea.textContent = text;
   }
+
+  text += '\n📚 課程繳清時間：\n';
+  if (Object.keys(calcResult.courseCompletionDates).length === 0) {
+    text += '  無課程或已繳清。\n';
+  } else {
+    for (const [name, date] of Object.entries(calcResult.courseCompletionDates)) {
+      text += `  - ${name} 🗓️ ${date.year}/${String(date.month).padStart(2, '0')} 繳清\n`;
+    }
+  }
+
+  // 每月詳細還款計畫
+  text += `\n📖 每月詳細還款計畫：\n`;
+  calcResult.monthlyPlans.forEach((plan, index) => {
+    text += `📆 ${plan.year}/${String(plan.month).padStart(2, '0')} (第 ${index + 1} 月)\n`;
+    text += `💰 可支配收入：${plan.disposableIncome.toFixed(2)} 元\n`;
+
+    if (Object.keys(plan.coursePayment).length) {
+      text += `📘 課程繳納：\n`;
+      for (const [course, amount] of Object.entries(plan.coursePayment)) {
+        text += `  - ${course}: ${amount.toFixed(2)} 元\n`;
+      }
+    }
+
+    if (Object.keys(plan.repayerPayment).length) {
+      text += `💳 還款人分配：\n`;
+      for (const [name, amount] of Object.entries(plan.repayerPayment)) {
+        text += `  - ${name}: ${amount.toFixed(2)} 元\n`;
+      }
+    }
+
+    text += `📊 當月總計繳納：${plan.totalPayment.toFixed(2)} 元\n`;
+    text += `💸 剩餘可支配收入：${plan.remainingIncome.toFixed(2)} 元\n`;
+
+    if (Object.keys(plan.repayRemaining).length) {
+      text += `📌 還款人剩餘債務：\n`;
+      for (const [name, debt] of Object.entries(plan.repayRemaining)) {
+        text += `  - ${name}: ${debt.toFixed(2)} 元\n`;
+      }
+    }
+
+    if (Object.keys(plan.courseRemaining).length) {
+      text += `📚 課程剩餘費用：\n`;
+      for (const [course, debt] of Object.entries(plan.courseRemaining)) {
+        text += `  - ${course}: ${debt.toFixed(2)} 元\n`;
+      }
+    }
+
+    text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+  });
+
+  resultArea.textContent = text;
+}
 
   // 繪製圓餅圖 (債務比例)
   function renderPieChart() {
