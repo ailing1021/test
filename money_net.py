@@ -5,7 +5,7 @@ from flask import Flask, render_template, request, jsonify, send_file
 from flask_cors import CORS
 import pandas as pd
 
-app = Flask(__name__, template_folder='template')  # 注意templates資料夾
+app = Flask(__name__, template_folder='template')
 CORS(app)
 
 state = {
@@ -32,7 +32,36 @@ def load_page(page):
             return render_template(f"{page}.html")
     return "404 頁面不存在", 404
 
-# API區塊 --------------------------------------------------
+# --- 工具函式 --- #
+
+def validate_positive_float(value, name):
+    try:
+        val = float(value)
+        if val < 0:
+            raise ValueError(f"{name}需為非負數")
+        return val, None
+    except Exception:
+        return None, f"{name}格式錯誤，請輸入數字且大於等於0"
+
+def validate_positive_int(value, name):
+    try:
+        val = int(value)
+        if val <= 0:
+            raise ValueError(f"{name}需為正整數")
+        return val, None
+    except Exception:
+        return None, f"{name}格式錯誤，請輸入正整數"
+
+def add_months_to_date(year, month, add_months):
+    month_total = month + add_months - 1
+    new_year = year + month_total // 12
+    new_month = (month_total % 12) + 1
+    return new_year, new_month
+
+def format_ym(year, month):
+    return f"{year}/{str(month).zfill(2)}"
+
+# --- API --- #
 
 @app.route('/api/get_state', methods=['GET'])
 def get_state():
@@ -41,24 +70,18 @@ def get_state():
 @app.route('/api/set_salary', methods=['POST'])
 def set_salary():
     data = request.get_json()
-    try:
-        salary = float(data.get('salary', 0))
-        if salary < 0:
-            raise ValueError()
-    except:
-        return jsonify({"status": "error", "message": "薪水必須是非負數"}), 400
+    salary, err = validate_positive_float(data.get('salary'), "薪水")
+    if err:
+        return jsonify({"status": "error", "message": err}), 400
     state['salary'] = salary
     return jsonify({"status": "success", "salary": salary})
 
 @app.route('/api/set_living_expense', methods=['POST'])
 def set_living_expense():
     data = request.get_json()
-    try:
-        expense = float(data.get('expense', 0))
-        if expense < 0:
-            raise ValueError()
-    except:
-        return jsonify({"status": "error", "message": "生活費必須是非負數"}), 400
+    expense, err = validate_positive_float(data.get('expense'), "生活費")
+    if err:
+        return jsonify({"status": "error", "message": err}), 400
     state['living_expense'] = expense
     return jsonify({"status": "success", "living_expense": expense})
 
@@ -66,11 +89,11 @@ def set_living_expense():
 def set_start_month():
     data = request.get_json()
     try:
-        start_month = int(data.get('start_month', 1))
-        if not (1 <= start_month <= 12):
-            raise ValueError()
-    except:
-        return jsonify({"status": "error", "message": "起始月份必須介於1~12"}), 400
+        start_month = int(data.get('start_month'))
+        if start_month < 1 or start_month > 12:
+            raise ValueError("起始月份必須介於1~12")
+    except Exception:
+        return jsonify({"status": "error", "message": "起始月份格式錯誤或不合法"}), 400
     state['start_month'] = start_month
     return jsonify({"status": "success", "start_month": start_month})
 
@@ -78,17 +101,13 @@ def set_start_month():
 def add_person():
     data = request.get_json()
     name = data.get('name', '').strip()
-    debt = data.get('debt')
     if not name:
         return jsonify({"status": "error", "message": "姓名不能為空"}), 400
     if any(p['name'] == name for p in state['repay_list']):
         return jsonify({"status": "error", "message": "此姓名已存在"}), 400
-    try:
-        debt = float(debt)
-        if debt <= 0:
-            raise ValueError()
-    except:
-        return jsonify({"status": "error", "message": "欠款金額必須是正數"}), 400
+    debt, err = validate_positive_float(data.get('debt'), "欠款金額")
+    if err or debt == 0:
+        return jsonify({"status": "error", "message": "欠款金額必須是大於0的數字"}), 400
     state['repay_list'].append({"name": name, "debt": debt})
     return jsonify({"status": "success", "repay_list": state['repay_list']})
 
@@ -107,27 +126,21 @@ def remove_person():
 @app.route('/api/add_course', methods=['POST'])
 def add_course():
     data = request.get_json()
-    fee = data.get('fee')
-    months = data.get('months')
-    try:
-        fee = float(fee)
-        months = int(months)
-        if fee <= 0 or months <= 0:
-            raise ValueError()
-    except:
-        return jsonify({"status": "error", "message": "課程費用與期數需為正數"}), 400
+    fee, err_fee = validate_positive_float(data.get('fee'), "課程費用")
+    months, err_months = validate_positive_int(data.get('months'), "課程期數")
+    if err_fee or err_months:
+        return jsonify({"status": "error", "message": err_fee or err_months}), 400
     state['course_list'].append({"fee": fee, "months": months})
     return jsonify({"status": "success", "course_list": state['course_list']})
 
 @app.route('/api/remove_course', methods=['POST'])
 def remove_course():
     data = request.get_json()
-    idx = data.get('index')
     try:
-        idx = int(idx)
+        idx = int(data.get('index'))
         if idx < 0 or idx >= len(state['course_list']):
             raise ValueError()
-    except:
+    except Exception:
         return jsonify({"status": "error", "message": "索引錯誤"}), 400
     state['course_list'].pop(idx)
     return jsonify({"status": "success", "course_list": state['course_list']})
@@ -146,37 +159,39 @@ def calculate():
         return jsonify({"status": "error", "message": f"薪水({salary})必須大於生活費({living_expense})"}), 400
 
     disposable_income = salary - living_expense
+    if disposable_income <= 0:
+        return jsonify({"status": "error", "message": "薪水扣除生活費後無可支配收入"}), 400
 
+    # 初始化
     current_person_debts = {p["name"]: p["debt"] for p in repay_list}
-    monthly_course_payments = []
-    for i, c in enumerate(course_list):
-        monthly_course_payments.append({
-            "original_index": i,
-            "name": f"課程{i+1}",
-            "monthly_amount": c["fee"] / c["months"] if c["months"] > 0 else 0,
-            "remaining_fee": c["fee"],
-            "original_months": c["months"]
-        })
+    monthly_course_payments = [{
+        "original_index": i,
+        "name": f"課程{i+1}",
+        "monthly_amount": c["fee"] / c["months"],
+        "remaining_fee": c["fee"],
+        "original_months": c["months"]
+    } for i, c in enumerate(course_list)]
 
     month_records = []
     repayment_completion_dates = {}
     course_completion_dates = {}
 
-    current_month_index = 0
     now = datetime.now()
     year = now.year
+    current_month_index = 0
 
     while True:
-        all_debts_cleared = all(v <= 0.001 for v in current_person_debts.values())
-        all_courses_cleared = all(c["remaining_fee"] <= 0.001 for c in monthly_course_payments)
-        if all_debts_cleared and all_courses_cleared:
+        # 判斷是否全部還清
+        debts_cleared = all(v <= 0.001 for v in current_person_debts.values())
+        courses_cleared = all(c["remaining_fee"] <= 0.001 for c in monthly_course_payments)
+        if debts_cleared and courses_cleared:
             break
 
         current_month_index += 1
         month_offset = start_month + current_month_index - 1
         month = (month_offset % 12) + 1
         calc_year = year + (month_offset // 12)
-        date_str = f"{calc_year}/{month:02d}"
+        date_str = format_ym(calc_year, month)
 
         month_record = {
             "month_num": current_month_index,
@@ -227,6 +242,7 @@ def calculate():
         if current_month_index > 2000:
             return jsonify({"status": "error", "message": "計算超過2000個月，可能無法還清所有債務。請檢查輸入資料。"}), 500
 
+    # 產生簡要結果文字
     result_text = f"總計還款月數：{current_month_index} 個月\n"
     result_text += "還款人繳清日期：\n"
     for name, date in repayment_completion_dates.items():
@@ -286,6 +302,7 @@ def export_csv():
         as_attachment=True,
         download_name="repayment_plan.csv"
     )
+
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=5000)
