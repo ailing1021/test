@@ -559,7 +559,7 @@
   text += `🏠 生活費：${state.livingExpense.toLocaleString()} 元\n`;
   text += `🔢 總還款期數：約 ${calcResult.monthCount} 個月\n\n`;
 
-  // 還款人還清時間
+  // 還款完成時間
   text += '💳 債務人還清時間：\n';
   if (Object.keys(calcResult.repayCompletionDates).length === 0) {
     text += '  無債務人或債務已清。\n';
@@ -569,36 +569,30 @@
     }
   }
 
-  text += '\n📚 課程繳清時間：\n';
-  if (Object.keys(calcResult.courseCompletionDates).length === 0) {
-    text += '  無課程或已繳清。\n';
-  } else {
-    for (const [name, date] of Object.entries(calcResult.courseCompletionDates)) {
-      text += `  - ${name} 🗓️ ${date.year}/${String(date.month).padStart(2, '0')} 繳清\n`;
-    }
-  }
+  // 每月還款明細
+  text += `\n📖 每月還款分配給債務人：\n`;
 
-  // 每月還款分配明細
-  text += `\n📖 每月還款分配：\n`;
   state.monthRecords.forEach((rec, index) => {
     text += `📆 ${rec.year}/${String(rec.month).padStart(2, '0')} (第 ${index + 1} 月)\n`;
 
-    // 債務人還款
     const repayers = Object.entries(rec.debtsRemaining);
-    repayers.forEach(([name], idx) => {
-      const prevDebt = index > 0 ? state.monthRecords[index - 1].debtsRemaining[name] : state.debtors.find(d => d.name === name)?.debt || 0;
-      const paid = prevDebt - rec.debtsRemaining[name];
-      if (paid > 0.001) {
-        text += `  💳 ${name} 繳 ${paid.toFixed(2)} 元\n`;
-      }
-    });
 
-    // 課程繳費
-    rec.coursesRemaining.forEach((course, idx) => {
-      const prevFee = index > 0 ? state.monthRecords[index - 1].coursesRemaining[idx].remainingFee : state.courses[idx]?.fee || 0;
-      const paid = prevFee - course.remainingFee;
+    repayers.forEach(([name, remaining]) => {
+      // 上個月的剩餘金額
+      let prevDebt = 0;
+      if (index === 0) {
+        // 第1個月，用原始金額
+        const debtor = state.debtors.find(d => d.name === name);
+        prevDebt = debtor ? debtor.debt : 0;
+      } else {
+        // 其他月份，用上個月剩餘
+        prevDebt = state.monthRecords[index - 1].debtsRemaining[name];
+      }
+
+      // 計算本月實際還款金額
+      const paid = prevDebt - remaining;
       if (paid > 0.001) {
-        text += `  📘 ${course.name} 繳 ${paid.toFixed(2)} 元\n`;
+        text += `  💳 ${name} 還 ${paid.toFixed(2)} 元\n`;
       }
     });
 
