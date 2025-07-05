@@ -31,6 +31,16 @@ def load_page(page):
         if os.path.exists(path):
             return render_template(f"{page}.html")
     return "404 頁面不存在", 404
+    
+@app.route('/contact', methods=['POST'])
+def contact():
+    name = request.form['name']
+    email = request.form['email']
+    message = request.form['message']
+
+    print(f"收到聯絡訊息：姓名 {name}, Email {email}, 內容 {message}")
+
+    return "我們已收到您的訊息，感謝您聯絡！"
 
 # --- 工具函式 --- #
 
