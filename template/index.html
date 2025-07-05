@@ -170,6 +170,8 @@
     }
   }
 </style>
+<!-- 引入 Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -196,6 +198,11 @@
     <h2>課程清單</h2>
     <div id="coursesList" class="list-group"></div>
     <button id="addCourseBtn" type="button">＋ 新增課程</button>
+  </section>
+
+  <section>
+    <h2>還款人債務比例圖</h2>
+    <canvas id="debtChart" style="max-width:100%; height:300px;"></canvas>
   </section>
 
   <button id="calculateBtn" type="button">開始計算</button>
@@ -259,6 +266,9 @@
   addCourseBtn.onclick = () => {
     coursesList.appendChild(createCourseItem());
   };
+
+  // 圓餅圖物件
+  let debtChart = null;
 
   // 計算邏輯
   const calculateBtn = document.getElementById('calculateBtn');
@@ -328,33 +338,29 @@
       return;
     }
 
-    // 課程每月繳費（假設30個月均攤）
+    // 計算每月課程費用總和（課程攤30個月）
     const totalCourseMonthlyPayment = courses.length > 0 ? courses.reduce((acc, c) => acc + (c.amount / 30), 0) : 0;
 
-    // 每月可用還款金額 = 可支配收入 - 課程每月繳費總和
     if (disposableIncome < totalCourseMonthlyPayment) {
       alert('可支配收入不足以支付所有課程每月繳費');
       return;
     }
     const repaymentMonthly = disposableIncome - totalCourseMonthlyPayment;
 
-    // 計算還款計畫（均分法）
+    // 更新圓餅圖
+    updateDebtChart(debtors);
+
+    // 開始計算還款明細
     const results = [];
     let month = 1;
-    const maxMonths = 60; // 最多60個月，避免無限迴圈
+    const maxMonths = 60;
     while (month <= maxMonths) {
+      let monthStr = '';
       const currentYearMonth = addMonthsToCurrent(month - 1);
-
-      // 如果所有債務與課程均還清，跳出
-      let totalDebtRemaining = debtors.reduce((acc, d) => acc + d.remaining, 0);
-      let totalCourseRemaining = courses.reduce((acc, c) => acc + c.remaining, 0);
-      if (totalDebtRemaining <= 0 && totalCourseRemaining <= 0) break;
-
-      let monthStr = `月份: ${currentYearMonth} (第 ${month} 月)\n`;
+      monthStr += `月份: ${currentYearMonth} (第 ${month} 月)\n`;
       monthStr += `  薪資: ${salary.toFixed(2)} 元\n`;
       monthStr += `  生活費: ${livingExpense.toFixed(2)} 元\n`;
       monthStr += `  可支配收入: ${disposableIncome.toFixed(2)} 元\n`;
-
       if (courses.length > 0) {
         monthStr += `  課程繳納:\n`;
         for (const c of courses) {
@@ -367,17 +373,24 @@
         }
       }
 
-      // 債務人均分還款
-      const activeDebtors = debtors.filter(d => d.remaining > 0);
-      let totalDebtRem = activeDebtors.reduce((acc, d) => acc + d.remaining, 0);
-      monthStr += `  還款人分配:\n`;
-      for (const d of activeDebtors) {
-        let share = d.remaining / totalDebtRem;
-        let payAmount = repaymentMonthly * share;
-        if (payAmount > d.remaining) payAmount = d.remaining;
-        d.remaining -= payAmount;
-        monthStr += `    - ${d.name}: ${payAmount.toFixed(2)} 元\n`;
+      let totalRemainingDebt = debtors.reduce((acc, d) => acc + d.remaining, 0);
+      if (totalRemainingDebt <= 0 && courses.every(c => c.remaining <= 0)) {
+        break;
       }
+
+      const activeDebtors = debtors.filter(d => d.remaining > 0);
+      let monthlyRepay = repaymentMonthly;
+      let monthRepaymentStr = `  還款人分配:\n`;
+      for (const debtor of activeDebtors) {
+        const share = debtor.remaining / totalRemainingDebt;
+        let payAmount = repaymentMonthly * share;
+        if (payAmount > debtor.remaining) payAmount = debtor.remaining;
+        debtor.remaining -= payAmount;
+        monthlyRepay -= payAmount;
+        monthRepaymentStr += `    - ${debtor.name}: ${payAmount.toFixed(2)} 元\n`;
+      }
+
+      monthStr += monthRepaymentStr;
 
       const monthlyTotal = repaymentMonthly + totalCourseMonthlyPayment;
       monthStr += `  當月總計還款/繳費: ${monthlyTotal.toFixed(2)} 元\n`;
@@ -388,7 +401,6 @@
       for (const d of debtors) {
         monthStr += `    - ${d.name}: ${d.remaining.toFixed(2)} 元\n`;
       }
-
       if (courses.length > 0) {
         monthStr += `  課程剩餘費用:\n`;
         for (const c of courses) {
@@ -404,16 +416,20 @@
 
     const totalMonths = month - 1;
 
-    // 還清時間（粗估）
-    const totalDebt = debtors.reduce((a,b) => a + b.amount, 0);
+    // 還款人還清時間（簡單估算）
+    const totalDebt = debtors.reduce((acc, d) => acc + d.amount, 0);
     const payOffTimes = debtors.map(d => {
-      const estMonth = calculateMonthsToClear(d.amount, repaymentMonthly * (d.amount / totalDebt));
-      return `   - ${d.name}: ${addMonthsToCurrent(estMonth)} 還清`;
+      const share = d.amount / totalDebt;
+      const estMonths = calculateMonthsToClear(d.amount, repaymentMonthly * share);
+      const yearMonth = addMonthsToCurrent(estMonths);
+      return `   - ${d.name}: ${yearMonth} 還清`;
     });
 
+    // 課程繳清時間
     const coursePayOffTimes = courses.filter(c => c.amount > 0).map(c => {
-      const estMonth = Math.ceil(c.amount / (c.amount / 30));
-      return `   - ${c.name}: ${addMonthsToCurrent(estMonth)} 繳清`;
+      const months = Math.ceil(c.amount / (c.amount / 30));
+      const yearMonth = addMonthsToCurrent(months);
+      return `   - ${c.name}: ${yearMonth} 繳清`;
     });
 
     let finalText = `還款試算結果：\n\n`;
@@ -441,6 +457,63 @@
     return Math.ceil(amount / monthlyPayment);
   }
 
+  // 繪製還款人債務比例圓餅圖
+  function updateDebtChart(debtors) {
+    const ctx = document.getElementById('debtChart').getContext('2d');
+    const labels = debtors.map(d => d.name);
+    const data = debtors.map(d => d.amount);
+
+    if (debtChart) {
+      debtChart.destroy();
+    }
+
+    debtChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: '債務比例',
+          data: data,
+          backgroundColor: generateColors(data.length),
+          borderColor: '#fff',
+          borderWidth: 2,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: {
+              font: { size: 14 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: context => {
+                let label = context.label || '';
+                let value = context.parsed || 0;
+                return `${label}: ${value.toLocaleString()} 元`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // 產生 N 個顏色 (簡單版)
+  function generateColors(n) {
+    const baseColors = [
+      '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
+      '#9966FF', '#FF9F40', '#C9CBCF', '#8AFFC1'
+    ];
+    const colors = [];
+    for(let i=0; i<n; i++) {
+      colors.push(baseColors[i % baseColors.length]);
+    }
+    return colors;
+  }
 </script>
 
 </body>
