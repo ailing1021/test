@@ -249,7 +249,7 @@
     <button id="btnExportCSV" type="button" disabled>匯出 CSV</button>
     <button id="btnClearResults" type="button" disabled>清除結果</button>
     <button id="btnCopyResults" type="button" disabled>複製結果</button>
-  </section>
+    <button id="btnExportPDF" type="button" disabled>匯出 PDF</button>   </section>
 
     <section id="resultSection">
     <h2>計算結果</h2>
@@ -287,6 +287,8 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
   // 全局狀態
@@ -309,10 +311,11 @@
   const btnAddCourse = document.getElementById('btnAddCourse');
   const btnCalculate = document.getElementById('btnCalculate');
   const btnExportCSV = document.getElementById('btnExportCSV');
-  const btnClearResults = document.getElementById('btnClearResults'); // New button
-  const btnCopyResults = document.getElementById('btnCopyResults'); // New button
+  const btnClearResults = document.getElementById('btnClearResults');
+  const btnCopyResults = document.getElementById('btnCopyResults');
+  const btnExportPDF = document.getElementById('btnExportPDF'); // NEW: PDF button element
   const resultArea = document.getElementById('resultArea');
-  const chartsArea = document.getElementById('chartsArea'); // Get charts area
+  const chartsArea = document.getElementById('chartsArea');
 
   let pieChart = null;
 
@@ -340,7 +343,7 @@
     btnRemove.onclick = () => {
       div.remove();
       updateStateFromUI();
-      clearAndDisableResults(); // Clear results when debtor is removed
+      clearAndDisableResults();
     };
 
     // 輸入改變即更新狀態
@@ -384,7 +387,7 @@
     btnRemove.onclick = () => {
       div.remove();
       updateStateFromUI();
-      clearAndDisableResults(); // Clear results when course is removed
+      clearAndDisableResults();
     };
 
     // 輸入改變即更新狀態
@@ -404,14 +407,14 @@
   btnAddDebtor.addEventListener('click', () => {
     const item = createDebtorItem();
     debtorsList.appendChild(item);
-    clearAndDisableResults(); // Clear results when new debtor is added
+    clearAndDisableResults();
   });
 
   // 新增課程
   btnAddCourse.addEventListener('click', () => {
     const item = createCourseItem();
     coursesList.appendChild(item);
-    clearAndDisableResults(); // Clear results when new course is added
+    clearAndDisableResults();
   });
 
   // 從UI同步狀態物件
@@ -445,6 +448,7 @@
     btnExportCSV.disabled = true;
     btnClearResults.disabled = true;
     btnCopyResults.disabled = true;
+    btnExportPDF.disabled = true; // NEW: Disable PDF button
   }
 
   // 顯示錯誤訊息
@@ -456,18 +460,22 @@
   function calculateRepaymentPlan() {
     if (state.salary <= 0) {
       showError('請輸入有效的薪資');
+      clearAndDisableResults();
       return;
     }
     if (state.livingExpense < 0) {
       showError('生活費不可為負數');
+      clearAndDisableResults();
       return;
     }
     if (state.livingExpense >= state.salary) {
       showError('生活費不可大於或等於薪資');
+      clearAndDisableResults();
       return;
     }
     if (state.debtors.length === 0 && state.courses.length === 0) {
       showError('請至少新增一位債務人或一個課程');
+      clearAndDisableResults();
       return;
     }
 
@@ -498,6 +506,7 @@
       if (allDebtsCleared && allCoursesCleared) break;
       if (monthCount > maxMonths) {
         showError('計算超過最大月份，請檢查輸入是否正確');
+        clearAndDisableResults();
         break;
       }
 
@@ -561,53 +570,53 @@
 
   // 顯示結果到頁面
   function displayResults(calcResult) {
-  let text = `📅 計算起始月份：${state.startMonth} 月\n`;
-  text += `💰 薪資：${state.salary.toLocaleString()} 元\n`;
-  text += `🏠 生活費：${state.livingExpense.toLocaleString()} 元\n`;
-  text += `🔢 總還款期數：約 ${calcResult.monthCount} 個月\n\n`;
+    let text = `📅 計算起始月份：${state.startMonth} 月\n`;
+    text += `💰 薪資：${state.salary.toLocaleString()} 元\n`;
+    text += `🏠 生活費：${state.livingExpense.toLocaleString()} 元\n`;
+    text += `🔢 總還款期數：約 ${calcResult.monthCount} 個月\n\n`;
 
-  // 還款完成時間
-  text += '💳 債務人還清時間：\n';
-  if (Object.keys(calcResult.repayCompletionDates).length === 0) {
-    text += '  無債務人或債務已清。\n';
-  } else {
-    for (const [name, date] of Object.entries(calcResult.repayCompletionDates)) {
-      text += `  - ${name} 🗓️ ${date.year}/${String(date.month).padStart(2, '0')} 還清\n`;
+    // 還款完成時間
+    text += '💳 債務人還清時間：\n';
+    if (Object.keys(calcResult.repayCompletionDates).length === 0) {
+      text += '  無債務人或債務已清。\n';
+    } else {
+      for (const [name, date] of Object.entries(calcResult.repayCompletionDates)) {
+        text += `  - ${name} 🗓️ ${date.year}/${String(date.month).padStart(2, '0')} 還清\n`;
+      }
     }
-  }
 
-  // 每月還款明細
-  text += `\n📖 每月還款分配給債務人：\n`;
+    // 每月還款明細
+    text += `\n📖 每月還款分配給債務人：\n`;
 
-  state.monthRecords.forEach((rec, index) => {
-    text += `📆 ${rec.year}/${String(rec.month).padStart(2, '0')} (第 ${index + 1} 月)\n`;
+    state.monthRecords.forEach((rec, index) => {
+      text += `📆 ${rec.year}/${String(rec.month).padStart(2, '0')} (第 ${index + 1} 月)\n`;
 
-    const repayers = Object.entries(rec.debtsRemaining);
+      const repayers = Object.entries(rec.debtsRemaining);
 
-    repayers.forEach(([name, remaining]) => {
-      // 上個月的剩餘金額
-      let prevDebt = 0;
-      if (index === 0) {
-        // 第1個月，用原始金額
-        const debtor = state.debtors.find(d => d.name === name);
-        prevDebt = debtor ? debtor.debt : 0;
-      } else {
-        // 其他月份，用上個月剩餘
-        prevDebt = state.monthRecords[index - 1].debtsRemaining[name];
-      }
+      repayers.forEach(([name, remaining]) => {
+        // 上個月的剩餘金額
+        let prevDebt = 0;
+        if (index === 0) {
+          // 第1個月，用原始金額
+          const debtor = state.debtors.find(d => d.name === name);
+          prevDebt = debtor ? debtor.debt : 0;
+        } else {
+          // 其他月份，用上個月剩餘
+          prevDebt = state.monthRecords[index - 1].debtsRemaining[name];
+        }
 
-      // 計算本月實際還款金額
-      const paid = prevDebt - remaining;
-      if (paid > 0.001) {
-        text += `  💳 ${name} 還 ${paid.toFixed(2)} 元\n`;
-      }
+        // 計算本月實際還款金額
+        const paid = prevDebt - remaining;
+        if (paid > 0.001) {
+          text += `  💳 ${name} 還 ${paid.toFixed(2)} 元\n`;
+        }
+      });
+
+      text += `━━━━━━━━━━━━━━━━━━━━━\n`;
     });
 
-    text += `━━━━━━━━━━━━━━━━━━━━━\n`;
-  });
-
-  resultArea.textContent = text;
-}
+    resultArea.textContent = text;
+  }
   // 繪製圓餅圖 (債務比例)
   function renderPieChart() {
     if (pieChart) {
@@ -618,10 +627,10 @@
     const totalDebt = state.debtors.reduce((sum, d) => sum + d.debt, 0);
     if (totalDebt <= 0) {
       // 無債務就不畫圖
-      chartsArea.style.display = 'none'; // Hide the charts area
+      chartsArea.style.display = 'none';
       return;
     }
-    chartsArea.style.display = 'flex'; // Show the charts area
+    chartsArea.style.display = 'flex';
 
     const labels = state.debtors.map(d => d.name);
     const data = state.debtors.map(d => d.debt);
@@ -713,11 +722,12 @@
       pieChart.destroy();
       pieChart = null;
     }
-    chartsArea.style.display = 'none'; // Hide the charts area
+    chartsArea.style.display = 'none';
     btnExportCSV.disabled = true;
     btnClearResults.disabled = true;
     btnCopyResults.disabled = true;
-    state.monthRecords = []; // Clear month records in state
+    btnExportPDF.disabled = true; // NEW: Disable PDF button
+    state.monthRecords = [];
   }
 
   // 按鈕事件：開始計算
@@ -726,15 +736,16 @@
 
     const calcResult = calculateRepaymentPlan();
     if (!calcResult) {
-      clearAndDisableResults(); // Clear if calculation fails
+      clearAndDisableResults();
       return;
     }
 
     displayResults(calcResult);
     renderPieChart();
     btnExportCSV.disabled = false;
-    btnClearResults.disabled = false; // Enable clear button after calculation
-    btnCopyResults.disabled = false; // Enable copy button after calculation
+    btnClearResults.disabled = false;
+    btnCopyResults.disabled = false;
+    btnExportPDF.disabled = false; // NEW: Enable PDF button
   });
 
   // 按鈕事件：匯出 CSV
@@ -764,11 +775,74 @@
     }
   });
 
+  // NEW: Button event: Export PDF
+  btnExportPDF.addEventListener('click', async () => {
+    try {
+      // Hide elements that should not appear in the PDF screenshot (e.g., buttons, input fields)
+      // For simplicity, we'll only capture the resultArea and chartsArea for now.
+      // If you want to capture the whole main section, you might need to hide action buttons temporarily.
+      
+      // Capture the result area
+      const resultCanvas = await html2canvas(resultArea, {
+        scale: 2, // Increase scale for better resolution
+        useCORS: true // Essential if you load images/fonts from different origins
+      });
+      const resultImgData = resultCanvas.toDataURL('image/png');
+
+      // Capture the charts area if it's visible
+      let chartImgData = null;
+      if (chartsArea.style.display !== 'none' && chartsArea.clientHeight > 0) {
+        const chartCanvas = await html2canvas(chartsArea, {
+          scale: 2,
+          useCORS: true
+        });
+        chartImgData = chartCanvas.toDataURL('image/png');
+      }
+
+      // Create a new jsPDF instance
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF('p', 'mm', 'a4'); // 'p' for portrait, 'mm' for millimeters, 'a4' for A4 size
+
+      // Add the result area image to the PDF
+      const imgWidth = 190; // A4 width approx 210mm, leaving 10mm margin on each side
+      const pageHeight = doc.internal.pageSize.height;
+      let imgHeight = resultCanvas.height * imgWidth / resultCanvas.width;
+      let heightLeft = imgHeight;
+      let position = 10; // Initial Y position for top margin
+
+      doc.addImage(resultImgData, 'PNG', 10, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      // If result area content spans multiple pages
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight + 10; // Reset position to start of new page
+        doc.addPage();
+        doc.addImage(resultImgData, 'PNG', 10, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Add the charts area image to the PDF (if visible)
+      if (chartImgData) {
+        doc.addPage(); // Start charts on a new page for clarity
+        const chartImgHeight = chartCanvas.height * imgWidth / chartCanvas.width;
+        doc.addImage(chartImgData, 'PNG', 10, 10, imgWidth, chartImgHeight);
+      }
+      
+      doc.save(`還款試算結果_${new Date().toISOString().slice(0,10)}.pdf`);
+      alert('PDF 已匯出！');
+
+    } catch (err) {
+      console.error('匯出 PDF 失敗：', err);
+      alert('匯出 PDF 失敗，請稍後再試。');
+    }
+  });
+
+
   // 頁面載入時，預先加入1筆債務人與課程，方便操作
   window.onload = () => {
     btnAddDebtor.click();
     btnAddCourse.click();
-    chartsArea.style.display = 'none'; // Hide charts area on initial load
+    chartsArea.style.display = 'none';
   };
 </script>
 
