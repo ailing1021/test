@@ -299,7 +299,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
-    // 全局狀態
+    // Global state object to hold all calculator data
     const state = {
         salary: 0,
         livingExpense: 0,
@@ -309,7 +309,7 @@
         monthRecords: [],
     };
 
-    // DOM Elements
+    // DOM Element references
     const inputSalary = document.getElementById('inputSalary');
     const inputExpense = document.getElementById('inputExpense');
     const selectStartMonth = document.getElementById('selectStartMonth');
@@ -325,9 +325,14 @@
     const resultArea = document.getElementById('resultArea');
     const chartsArea = document.getElementById('chartsArea');
 
-    let pieChart = null;
+    let pieChart = null; // To store the Chart.js instance
 
-    // 建立債務人輸入區塊
+    /**
+     * Creates a new debtor input item.
+     * @param {string} name - Initial debtor name.
+     * @param {string} debt - Initial debt amount.
+     * @returns {HTMLElement} The created list item div.
+     */
     function createDebtorItem(name = '', debt = '') {
         const div = document.createElement('div');
         div.className = 'list-item';
@@ -347,14 +352,14 @@
         const btnRemove = document.createElement('button');
         btnRemove.className = 'btn-remove';
         btnRemove.title = "移除債務人";
-        btnRemove.innerHTML = '&times;';
+        btnRemove.innerHTML = '&times;'; // Unicode multiplication sign for 'x'
         btnRemove.onclick = () => {
-            div.remove();
-            updateStateFromUI();
-            clearResultDisplayOnly(); // 任何輸入改變或移除都清空結果顯示，但不清空輸入
+            div.remove(); // Remove the item from the DOM
+            updateStateFromUI(); // Update the global state
+            clearResultDisplayOnly(); // Clear results as input changed
         };
 
-        // 輸入改變即更新狀態
+        // Add event listeners to inputs for real-time state updates
         inputName.addEventListener('input', updateStateFromUI);
         inputDebt.addEventListener('input', updateStateFromUI);
 
@@ -365,7 +370,13 @@
         return div;
     }
 
-    // 建立課程輸入區塊
+    /**
+     * Creates a new course input item.
+     * @param {string} name - Initial course name.
+     * @param {string} fee - Initial course fee.
+     * @param {string} months - Initial repayment months.
+     * @returns {HTMLElement} The created list item div.
+     */
     function createCourseItem(name = '', fee = '', months = '') {
         const div = document.createElement('div');
         div.className = 'list-item';
@@ -395,10 +406,9 @@
         btnRemove.onclick = () => {
             div.remove();
             updateStateFromUI();
-            clearResultDisplayOnly(); // 任何輸入改變或移除都清空結果顯示，但不清空輸入
+            clearResultDisplayOnly(); // Clear results as input changed
         };
 
-        // 輸入改變即更新狀態
         inputName.addEventListener('input', updateStateFromUI);
         inputFee.addEventListener('input', updateStateFromUI);
         inputMonths.addEventListener('input', updateStateFromUI);
@@ -411,26 +421,30 @@
         return div;
     }
 
-    // 新增債務人
+    // Event listener for adding a new debtor
     btnAddDebtor.addEventListener('click', () => {
         const item = createDebtorItem();
         debtorsList.appendChild(item);
-        clearResultDisplayOnly(); // 新增項目後清空結果顯示
+        clearResultDisplayOnly(); // Clear results on new item added
     });
 
-    // 新增課程
+    // Event listener for adding a new course
     btnAddCourse.addEventListener('click', () => {
         const item = createCourseItem();
         coursesList.appendChild(item);
-        clearResultDisplayOnly(); // 新增項目後清空結果顯示
+        clearResultDisplayOnly(); // Clear results on new item added
     });
 
-    // 從UI同步狀態物件
+    /**
+     * Updates the global state object by reading values from the UI.
+     * This function should be called whenever input values might have changed.
+     */
     function updateStateFromUI() {
         state.salary = parseFloat(inputSalary.value) || 0;
         state.livingExpense = parseFloat(inputExpense.value) || 0;
         state.startMonth = parseInt(selectStartMonth.value, 10) || 1;
 
+        // Collect debtor data
         state.debtors = [];
         [...debtorsList.children].forEach(div => {
             const inputs = div.querySelectorAll('input');
@@ -441,6 +455,7 @@
             }
         });
 
+        // Collect course data
         state.courses = [];
         [...coursesList.children].forEach(div => {
             const inputs = div.querySelectorAll('input');
@@ -452,49 +467,56 @@
             }
         });
 
-        // Disable result buttons until calculation is performed
+        // Disable result buttons until calculation is performed again
         btnExportCSV.disabled = true;
-        btnClearResults.disabled = false; // "清除全部"按鈕應該總是可用的
+        // btnClearResults is always available
         btnCopyResults.disabled = true;
         btnExportPDF.disabled = true;
     }
 
-    // 顯示錯誤訊息
+    /**
+     * Displays an alert message to the user.
+     * @param {string} msg - The message to display.
+     */
     function showError(msg) {
         alert(msg);
     }
 
-    // 計算邏輯（與你原本Python邏輯相同）
+    /**
+     * Calculates the repayment plan based on the current state.
+     * @returns {object|null} An object containing calculation results or null if validation fails.
+     */
     function calculateRepaymentPlan() {
+        // Input validation
         if (state.salary <= 0) {
-            showError('請輸入有效的薪資');
+            showError('請輸入有效的薪資！');
             clearResultDisplayOnly();
-            return null; // Return null to indicate calculation failed
+            return null;
         }
         if (state.livingExpense < 0) {
-            showError('生活費不可為負數');
+            showError('生活費不可為負數！');
             clearResultDisplayOnly();
             return null;
         }
         if (state.livingExpense >= state.salary) {
-            showError('生活費不可大於或等於薪資，請調整');
+            showError('生活費不可大於或等於薪資，請調整！');
             clearResultDisplayOnly();
             return null;
         }
         if (state.debtors.length === 0 && state.courses.length === 0) {
-            showError('請至少新增一位債務人或一個課程');
+            showError('請至少新增一位債務人或一個課程！');
             clearResultDisplayOnly();
             return null;
         }
 
         const disposableIncome = state.salary - state.livingExpense;
 
-        // 初始化債務人與課程剩餘金額
+        // Initialize remaining debts and course fees
         const debtsRemaining = {};
         state.debtors.forEach(d => debtsRemaining[d.name] = d.debt);
         const coursesRemaining = state.courses.map(c => ({
             ...c,
-            monthlyPayment: c.fee / c.months,
+            monthlyPayment: c.fee / c.months, // Calculate monthly payment for courses
             remainingFee: c.fee
         }));
 
@@ -502,16 +524,18 @@
 
         const monthRecords = [];
         let monthCount = 0;
-        const maxMonths = 2000; // 設定最大計算月份，防止無限循環
+        const maxMonths = 2000; // Safety limit to prevent infinite loops
 
         const repayCompletionDates = {};
         const courseCompletionDates = {};
 
+        // Main calculation loop
         while (true) {
-            // 判斷是否全部還清
             const allDebtsCleared = Object.values(debtsRemaining).every(v => v <= 0.001);
             const allCoursesCleared = coursesRemaining.every(c => c.remainingFee <= 0.001);
-            if (allDebtsCleared && allCoursesCleared) break;
+
+            if (allDebtsCleared && allCoursesCleared) break; // All cleared, exit loop
+
             if (monthCount > maxMonths) {
                 showError('計算超過最大月份，可能存在無法還清的債務或課程，請檢查輸入是否正確。');
                 clearResultDisplayOnly();
@@ -521,56 +545,51 @@
             const currentMonthIndex = (state.startMonth - 1 + monthCount) % 12 + 1;
             const currentYear = startYear + Math.floor((state.startMonth - 1 + monthCount) / 12);
 
-            // 本月可用於還款的金額
-            let budget = disposableIncome;
+            let currentBudget = disposableIncome; // Budget for the current month
 
-            // 優先還債務人，依序平均分配
             const activeDebtors = Object.entries(debtsRemaining).filter(([_, debt]) => debt > 0.001);
-            if (activeDebtors.length > 0) {
-                // 將預算平均分配給所有活躍的債務人和課程
-                const totalActiveItems = activeDebtors.length + coursesRemaining.filter(c => c.remainingFee > 0.001).length;
-                const budgetPerItem = totalActiveItems > 0 ? budget / totalActiveItems : 0;
+            const activeCourses = coursesRemaining.filter(c => c.remainingFee > 0.001);
 
+            const totalActiveItems = activeDebtors.length + activeCourses.length;
+
+            if (totalActiveItems > 0) {
+                const budgetPerItem = currentBudget / totalActiveItems; // Distribute budget evenly among active items
+
+                // Pay off debtors first
                 activeDebtors.forEach(([name, debt]) => {
-                    const pay = Math.min(debt, budgetPerItem); // 每個債務人獲得的預算上限
-                    debtsRemaining[name] -= pay;
-                    budget -= pay;
+                    const payAmount = Math.min(debt, budgetPerItem);
+                    debtsRemaining[name] -= payAmount;
+                    currentBudget -= payAmount; // Reduce budget
                     if (debtsRemaining[name] <= 0.001 && !(name in repayCompletionDates)) {
                         repayCompletionDates[name] = { year: currentYear, month: currentMonthIndex };
                     }
                 });
-            }
 
-            // 剩下預算分給課程月付
-            const activeCourses = coursesRemaining.filter(c => c.remainingFee > 0.001);
-            if (activeCourses.length > 0 && budget > 0) {
-                const totalActiveItems = activeCourses.length + activeDebtors.filter(([_, debt]) => debt > 0.001).length; // 重新計算活躍項目，因為債務可能已還清部分
-                const budgetPerItem = totalActiveItems > 0 ? budget / totalActiveItems : 0;
-
+                // Then pay off courses using remaining budget
                 activeCourses.forEach(course => {
-                    // 支付金額為剩餘費用、每月應付金額、和分配到的預算中的最小值
-                    const pay = Math.min(course.remainingFee, course.monthlyPayment, budgetPerItem);
-                    course.remainingFee -= pay;
-                    budget -= pay; // 從總預算中扣除
+                    const payAmount = Math.min(course.remainingFee, course.monthlyPayment, budgetPerItem);
+                    course.remainingFee -= payAmount;
+                    currentBudget -= payAmount; // Reduce budget
                     if (course.remainingFee <= 0.001 && !(course.name in courseCompletionDates)) {
                         courseCompletionDates[course.name] = { year: currentYear, month: currentMonthIndex };
                     }
                 });
             }
 
-            // 記錄本月資料
+
+            // Record monthly data (deep copy current state for records)
             monthRecords.push({
                 year: currentYear,
                 month: currentMonthIndex,
                 debtsRemaining: JSON.parse(JSON.stringify(debtsRemaining)),
                 coursesRemaining: coursesRemaining.map(c => ({ name: c.name, remainingFee: c.remainingFee })),
-                budgetLeft: budget
+                budgetLeft: currentBudget
             });
 
             monthCount++;
         }
 
-        state.monthRecords = monthRecords;
+        state.monthRecords = monthRecords; // Store the full record in global state
 
         return {
             repayCompletionDates,
@@ -580,78 +599,99 @@
         };
     }
 
-    // 顯示結果到頁面
+    /**
+     * Displays the calculated results in the result area.
+     * @param {object} calcResult - The result object from calculateRepaymentPlan.
+     */
     function displayResults(calcResult) {
         let text = `📅 計算起始月份：${state.startMonth} 月\n`;
         text += `💰 薪資：${state.salary.toLocaleString()} 元\n`;
         text += `🏠 生活費：${state.livingExpense.toLocaleString()} 元\n`;
-        text += `🔢 總還款期數：約 ${calcResult.monthCount} 個月\n\n`;
+        text += `🔢 總還款期數：約 **${calcResult.monthCount}** 個月\n\n`;
 
-        // 還款完成時間
-        text += '💳 債務人還清時間：\n';
+        text += '--- 債務人還清時間 ---\n';
         if (Object.keys(calcResult.repayCompletionDates).length === 0) {
             text += '  無債務人或債務已清。\n';
         } else {
             for (const [name, date] of Object.entries(calcResult.repayCompletionDates)) {
-                text += `  - ${name} 🗓️ ${date.year}/${String(date.month).padStart(2, '0')} 還清\n`;
+                text += `  - **${name}** 🗓️ ${date.year}/${String(date.month).padStart(2, '0')} 還清\n`;
             }
         }
 
-        // 每月還款明細
-        text += `\n📖 每月還款分配給債務人：\n`;
+        text += '\n--- 課程費用繳清時間 ---\n';
+        if (Object.keys(calcResult.courseCompletionDates).length === 0) {
+            text += '  無課程或課程費用已清。\n';
+        } else {
+            for (const [name, date] of Object.entries(calcResult.courseCompletionDates)) {
+                text += `  - **${name}** 🗓️ ${date.year}/${String(date.month).padStart(2, '0')} 繳清\n`;
+            }
+        }
 
+        text += `\n--- 每月還款分配明細 ---\n`;
         state.monthRecords.forEach((rec, index) => {
-            text += `📆 ${rec.year}/${String(rec.month).padStart(2, '0')} (第 ${index + 1} 月)\n`;
+            text += `\n📆 ${rec.year}/${String(rec.month).padStart(2, '0')} (第 ${index + 1} 月)\n`;
 
-            const repayers = Object.entries(rec.debtsRemaining);
-
-            repayers.forEach(([name, remaining]) => {
-                // 上個月的剩餘金額
-                let prevDebt = 0;
-                if (index === 0) {
-                    // 第1個月，用原始金額
-                    const debtor = state.debtors.find(d => d.name === name);
-                    prevDebt = debtor ? debtor.debt : 0;
-                } else {
-                    // 其他月份，用上個月剩餘
-                    prevDebt = state.monthRecords[index - 1].debtsRemaining[name];
+            // Debtor payments for the current month
+            state.debtors.forEach(debtor => {
+                const currentRemaining = rec.debtsRemaining[debtor.name] || 0;
+                let prevRemaining = debtor.debt; // Default for first month
+                if (index > 0 && state.monthRecords[index - 1].debtsRemaining[debtor.name] !== undefined) {
+                    prevRemaining = state.monthRecords[index - 1].debtsRemaining[debtor.name];
                 }
-
-                // 計算本月實際還款金額
-                const paid = prevDebt - remaining;
-                if (paid > 0.001) {
-                    text += `  💳 ${name} 還 ${paid.toFixed(2)} 元\n`;
+                const paidThisMonth = prevRemaining - currentRemaining;
+                if (paidThisMonth > 0.001) {
+                    text += `  💳 **${debtor.name}** 還款 ${paidThisMonth.toFixed(2).toLocaleString()} 元\n`;
                 }
             });
 
-            text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+            // Course payments for the current month
+            state.courses.forEach(course => {
+                const currentRemaining = rec.coursesRemaining.find(c => c.name === course.name)?.remainingFee || 0;
+                let prevRemaining = course.fee; // Default for first month
+                if (index > 0) {
+                    const prevCourse = state.monthRecords[index - 1].coursesRemaining.find(c => c.name === course.name);
+                    if (prevCourse) {
+                        prevRemaining = prevCourse.remainingFee;
+                    }
+                }
+                const paidThisMonth = prevRemaining - currentRemaining;
+                if (paidThisMonth > 0.001) {
+                    text += `  🎓 **${course.name}** 繳費 ${paidThisMonth.toFixed(2).toLocaleString()} 元\n`;
+                }
+            });
+
+            if (rec.budgetLeft > 0.001) {
+                text += `  剩餘預算：${rec.budgetLeft.toFixed(2).toLocaleString()} 元\n`;
+            }
+            text += `----------------------------------------\n`;
         });
 
-        resultArea.textContent = text;
+        resultArea.innerHTML = text.replace(/\n/g, '<br>'); // Use innerHTML to render bold and line breaks
     }
 
-    // 繪製圓餅圖 (債務比例)
+    /**
+     * Renders or updates the pie chart based on current debtor data.
+     */
     function renderPieChart() {
         if (pieChart) {
-            pieChart.destroy();
+            pieChart.destroy(); // Destroy existing chart instance
             pieChart = null;
         }
 
         const totalDebt = state.debtors.reduce((sum, d) => sum + d.debt, 0);
         if (totalDebt <= 0) {
-            // 無債務就不畫圖
-            chartsArea.style.display = 'none';
+            chartsArea.style.display = 'none'; // Hide chart area if no debt
             return;
         }
-        chartsArea.style.display = 'flex';
+        chartsArea.style.display = 'flex'; // Show chart area
 
         const labels = state.debtors.map(d => d.name);
         const data = state.debtors.map(d => d.debt);
 
+        // Fun and vibrant colors
         const backgroundColors = [
-            '#ff6f6f', '#ff9f6f', '#ffc56f', '#b3d955',
-            '#6fcb9f', '#6fcbe6', '#6f8ffc', '#b16ffb',
-            '#eb6ffb', '#ff6fb8', '#ff6f8f'
+            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40',
+            '#C9CBCE', '#7B68EE', '#FFDAB9', '#ADFF2F', '#8A2BE2'
         ];
 
         const ctx = document.getElementById('pieChart').getContext('2d');
@@ -681,7 +721,11 @@
                     },
                     tooltip: {
                         callbacks: {
-                            label: ctx => `${ctx.label}: ${ctx.parsed.toLocaleString()} 元`
+                            label: ctx => {
+                                const total = ctx.dataset.data.reduce((sum, val) => sum + val, 0);
+                                const percentage = total > 0 ? ((ctx.parsed / total) * 100).toFixed(1) : 0;
+                                return `${ctx.label}: ${ctx.parsed.toLocaleString()} 元 (${percentage}%)`;
+                            }
                         }
                     }
                 }
@@ -689,72 +733,115 @@
         });
     }
 
-    // 產生 CSV 字串
+    /**
+     * Generates a CSV string from the monthRecords.
+     * @returns {string} The CSV content.
+     */
     function generateCSV() {
         if (!state.monthRecords || state.monthRecords.length === 0) return '';
 
-        const headers = ['年月', ...state.debtors.map(d => `債務-${d.name}`), ...state.courses.map(c => `課程-${c.name}`), '剩餘預算'];
-        const rows = state.monthRecords.map(r => {
-            const yearMonth = `${r.year}年${r.month}月`;
-            const debtValues = state.debtors.map(d => {
-                const val = r.debtsRemaining[d.name];
-                return val ? val.toFixed(2) : '0.00';
-            });
-            const courseValues = state.courses.map(c => {
-                const course = r.coursesRemaining.find(crs => crs.name === c.name);
-                return course ? course.remainingFee.toFixed(2) : '0.00';
-            });
-            return [yearMonth, ...debtValues, ...courseValues, r.budgetLeft.toFixed(2)];
-        });
+        // Headers for CSV
+        const headers = ['年月', '每月總還款金額'];
+        state.debtors.forEach(d => headers.push(`債務-${d.name}`));
+        state.courses.forEach(c => headers.push(`課程-${c.name}`));
+        headers.push('剩餘預算');
 
-        // CSV合併，逗號分隔，文字欄位包雙引號
         let csvContent = headers.map(h => `"${h}"`).join(',') + '\n';
-        rows.forEach(row => {
+
+        // Data rows
+        state.monthRecords.forEach(r => {
+            const yearMonth = `${r.year}年${String(r.month).padStart(2, '0')}月`;
+            let totalMonthlyPayment = 0;
+
+            const debtPayments = state.debtors.map(d => {
+                const currentRemaining = r.debtsRemaining[d.name] || 0;
+                let prevRemaining = d.debt;
+                const recordIndex = state.monthRecords.indexOf(r);
+                if (recordIndex > 0) {
+                    const prevRecord = state.monthRecords[recordIndex - 1];
+                    prevRemaining = prevRecord.debtsRemaining[d.name] || 0;
+                }
+                const paid = prevRemaining - currentRemaining;
+                totalMonthlyPayment += paid;
+                return paid.toFixed(2);
+            });
+
+            const coursePayments = state.courses.map(c => {
+                const currentRemaining = r.coursesRemaining.find(crs => crs.name === c.name)?.remainingFee || 0;
+                let prevRemaining = c.fee;
+                const recordIndex = state.monthRecords.indexOf(r);
+                if (recordIndex > 0) {
+                    const prevRecord = state.monthRecords[recordIndex - 1];
+                    const prevCourse = prevRecord.coursesRemaining.find(crs => crs.name === c.name);
+                    if (prevCourse) prevRemaining = prevCourse.remainingFee;
+                }
+                const paid = prevRemaining - currentRemaining;
+                totalMonthlyPayment += paid;
+                return paid.toFixed(2);
+            });
+
+            const row = [
+                yearMonth,
+                totalMonthlyPayment.toFixed(2),
+                ...debtPayments,
+                ...coursePayments,
+                r.budgetLeft.toFixed(2)
+            ];
             csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
         });
 
         return csvContent;
     }
 
-    // 下載 CSV
+    /**
+     * Triggers the download of a CSV file.
+     * @param {string} filename - The desired filename for the CSV.
+     * @param {string} csvContent - The content of the CSV file.
+     */
     function downloadCSV(filename, csvContent) {
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
         link.download = filename;
-        link.style.display = 'none';
+        link.style.display = 'none'; // Hide the link
         document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        link.click(); // Programmatically click the link to trigger download
+        document.body.removeChild(link); // Clean up
     }
 
-    // 只清除計算結果顯示區和圖表，不清除輸入
+    /**
+     * Clears only the result display area and chart, keeping inputs.
+     * Used when input fields are changed, indicating calculation is no longer current.
+     */
     function clearResultDisplayOnly() {
-        resultArea.textContent = '請填寫資料並按「開始計算」';
+        resultArea.innerHTML = '請填寫資料並按「開始計算」';
         if (pieChart) {
             pieChart.destroy();
             pieChart = null;
         }
         chartsArea.style.display = 'none';
-        state.monthRecords = []; // 清空記錄
+        state.monthRecords = []; // Clear recorded data
         btnExportCSV.disabled = true;
         btnCopyResults.disabled = true;
         btnExportPDF.disabled = true;
-        btnClearResults.disabled = false; // "清除全部"按鈕維持可用
+        btnClearResults.disabled = false; // "清除全部" button should always be available
     }
 
-    // 清除所有輸入和結果
+    /**
+     * Clears all input fields, dynamic lists, results, and resets the state.
+     * This is the "Clear All" functionality.
+     */
     function clearAllInputsAndResults() {
-        // 清空輸入欄位
+        // Clear input fields
         inputSalary.value = '';
         inputExpense.value = '';
-        selectStartMonth.value = '1'; // 重置為 1 月
+        selectStartMonth.value = '1'; // Reset to January
 
-        // 清空動態列表
+        // Clear dynamic lists by removing all children
         debtorsList.innerHTML = '';
         coursesList.innerHTML = '';
 
-        // 重置全局狀態
+        // Reset global state to initial values
         state.salary = 0;
         state.livingExpense = 0;
         state.startMonth = 1;
@@ -762,74 +849,71 @@
         state.courses = [];
         state.monthRecords = [];
 
-        // 清空結果顯示區和圖表
-        resultArea.textContent = '請填寫資料並按「開始計算」';
+        // Clear result display and chart
+        resultArea.innerHTML = '請填寫資料並按「開始計算」';
         if (pieChart) {
             pieChart.destroy();
             pieChart = null;
         }
         chartsArea.style.display = 'none';
 
-        // 禁用結果相關按鈕
+        // Disable result-related buttons
         btnExportCSV.disabled = true;
-        btnClearResults.disabled = false; // "清除全部"按鈕維持可用
+        btnClearResults.disabled = false; // "Clear All" should always be active
         btnCopyResults.disabled = true;
         btnExportPDF.disabled = true;
     }
 
+    // --- Event Listeners for Buttons ---
 
-    // 按鈕事件：開始計算
     btnCalculate.addEventListener('click', () => {
-        updateStateFromUI(); // 從 UI 取得最新資料來更新 state
+        updateStateFromUI(); // Ensure state is up-to-date
 
         const calcResult = calculateRepaymentPlan();
         if (!calcResult) {
-            // 如果計算失敗 (例如輸入錯誤)，calculateRepaymentPlan 會返回 null 並已顯示錯誤訊息
-            // 此時我們只需要確保結果顯示區被清空
-            clearResultDisplayOnly();
+            // If calculation failed (e.g., due to validation errors),
+            // calculateRepaymentPlan would have shown an error and cleared results.
             return;
         }
 
         displayResults(calcResult);
         renderPieChart();
         btnExportCSV.disabled = false;
-        // btnClearResults.disabled = false; // 該按鈕本身就應該是可用的
+        // btnClearResults.disabled = false; // This button is generally always enabled
         btnCopyResults.disabled = false;
         btnExportPDF.disabled = false;
     });
 
-    // 按鈕事件：匯出 CSV
     btnExportCSV.addEventListener('click', () => {
         const csv = generateCSV();
         if (!csv) {
-            alert('沒有可匯出的資料');
+            alert('沒有可匯出的資料！');
             return;
         }
-        const filename = `還款試算表_${new Date().toISOString().slice(0,10)}.csv`;
+        const filename = `還款試算表_${new Date().toISOString().slice(0, 10)}.csv`;
         downloadCSV(filename, csv);
     });
 
-    // 按鈕事件：清除全部 (原先的 btnClearResults)
+    // The "Clear All" button
     btnClearResults.addEventListener('click', () => {
-        clearAllInputsAndResults(); // 呼叫新的清除所有功能
-        // 清除後預設新增一個債務人和一個課程輸入框，方便再次操作
+        clearAllInputsAndResults();
+        // After clearing, add initial debtor and course items for user convenience
         btnAddDebtor.click();
         btnAddCourse.click();
     });
 
-    // 按鈕事件：複製結果 - 增加錯誤處理和備用方案
     btnCopyResults.addEventListener('click', async () => {
         try {
-            const textToCopy = resultArea.textContent;
-            if (!textToCopy || textToCopy === '請填寫資料並按「開始計算」') {
-                alert('沒有內容可以複製！');
+            const textToCopy = resultArea.innerText; // Use innerText to get plain text
+            if (!textToCopy || textToCopy.includes('請填寫資料並按「開始計算」')) {
+                alert('沒有內容可以複製！請先進行計算。');
                 return;
             }
             await navigator.clipboard.writeText(textToCopy);
             alert('計算結果已成功複製到剪貼簿！');
         } catch (err) {
             console.error('複製到剪貼簿失敗：', err);
-            // 提供手動複製的指示
+            // Fallback for browsers that don't support clipboard API or when it fails
             alert(
                 '複製失敗，可能是瀏覽器安全限制或其他問題。\n' +
                 '請您手動選取「計算結果」區塊的所有文字 (Ctrl+A / Cmd+A)，\n' +
@@ -838,69 +922,99 @@
         }
     });
 
-    // 按鈕事件：匯出 PDF
     btnExportPDF.addEventListener('click', async () => {
-        try {
-            // 暫時隱藏 footer，以免被截圖到
-            const originalFooterDisplay = document.querySelector('footer').style.display;
-            document.querySelector('footer').style.display = 'none';
+        const { jsPDF } = window.jspdf;
+        if (!jsPDF) {
+            alert('PDF 匯出函式庫未載入，請檢查網路連線或稍後再試。');
+            console.error('jsPDF library not loaded.');
+            return;
+        }
+        if (!window.html2canvas) {
+            alert('PDF 匯出函式庫未載入，請檢查網路連線或稍後再試。');
+            console.error('html2canvas library not loaded.');
+            return;
+        }
 
-            // 確保 main 區域的內容是可見的
+        try {
+            // Temporarily hide the footer to prevent it from being captured in the PDF
+            const footerElement = document.querySelector('footer');
+            const originalFooterDisplay = footerElement.style.display;
+            footerElement.style.display = 'none';
+
             const mainElement = document.querySelector('main');
             const originalMainOverflow = mainElement.style.overflow;
-            mainElement.style.overflow = 'visible'; // 允許內容溢出，確保 html2canvas 能完整截圖
+            const originalMainPaddingBottom = mainElement.style.paddingBottom;
 
-            // 捕獲整個 main 區域
-            const mainCanvas = await html2canvas(mainElement, {
-                scale: 2, // 提高解析度
-                useCORS: true,
-                logging: false // 減少 console log
+            // Ensure content isn't cut off during capture
+            mainElement.style.overflow = 'visible';
+            mainElement.style.paddingBottom = '50px'; // Add some padding for visual separation in PDF
+
+            // Use a temporary clone to avoid altering the live DOM during capture
+            const clonedMain = mainElement.cloneNode(true);
+            clonedMain.style.position = 'absolute';
+            clonedMain.style.top = '-9999px'; // Move off-screen
+            clonedMain.style.left = '-9999px';
+            clonedMain.style.width = mainElement.offsetWidth + 'px'; // Maintain original width
+            clonedMain.style.height = 'auto'; // Let height adjust
+            clonedMain.style.overflow = 'visible';
+            document.body.appendChild(clonedMain);
+
+            // Capture the cloned main element as a canvas image
+            const canvas = await html2canvas(clonedMain, {
+                scale: 2, // Increase resolution for better quality
+                useCORS: true, // Allow cross-origin images if any
+                logging: false, // Reduce console noise
+                scrollY: -window.scrollY // Correct capture position
             });
-            const mainImgData = mainCanvas.toDataURL('image/png');
 
-            // 恢復 footer 和 main 的樣式
-            document.querySelector('footer').style.display = originalFooterDisplay;
+            document.body.removeChild(clonedMain); // Remove the clone
+
+            // Restore original styles
+            footerElement.style.display = originalFooterDisplay;
             mainElement.style.overflow = originalMainOverflow;
+            mainElement.style.paddingBottom = originalMainPaddingBottom;
 
-            // 創建 jsPDF 實例
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('p', 'mm', 'a4'); // 'p' for portrait, 'mm' for millimeters, 'a4' for A4 size
-
-            const imgWidth = 200; // 寬度設定為 A4 寬度 (210mm) 減去左右各 5mm 邊距
-            let imgHeight = mainCanvas.height * imgWidth / mainCanvas.width;
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait, millimeters, A4 size (210x297 mm)
+            const imgWidth = 210 - 20; // A4 width minus 10mm margin on each side (20mm total)
+            const pageHeight = 297; // A4 height
+            let imgHeight = (canvas.height * imgWidth) / canvas.width;
             let heightLeft = imgHeight;
-            let position = 5; // 從頂部 5mm 開始
 
-            // 首次添加圖片
-            doc.addImage(mainImgData, 'PNG', 5, position, imgWidth, imgHeight);
-            heightLeft -= (doc.internal.pageSize.height - position); // Adjust heightLeft based on remaining space on first page
+            let position = 10; // Start at 10mm from top
 
-            // 如果圖片高度超過一頁，則分頁添加
+            // Add image to PDF, handling multiple pages if content is long
+            pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+            heightLeft -= (pageHeight - position);
+
             while (heightLeft >= 0) {
-                position = -imgHeight + heightLeft + 5; // Adjust position to show next part of the image
-                doc.addPage();
-                doc.addImage(mainImgData, 'PNG', 5, position, imgWidth, imgHeight);
-                heightLeft -= doc.internal.pageSize.height;
+                position = heightLeft - imgHeight + 10; // Adjust position for next page
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
             }
 
-            doc.save(`還款試算結果_${new Date().toISOString().slice(0,10)}.pdf`);
-            alert('PDF 已匯出！');
+            const filename = `還款試算結果_${new Date().toISOString().slice(0, 10)}.pdf`;
+            pdf.save(filename);
+            alert('PDF 已成功匯出！請檢查您的下載資料夾。');
 
         } catch (err) {
             console.error('匯出 PDF 失敗：', err);
-            alert('匯出 PDF 失敗，請稍後再試。');
+            alert('匯出 PDF 失敗，請確認您的瀏覽器是否支援，或稍後再試。\n錯誤詳情請見瀏覽器開發者工具的 Console。');
         }
     });
 
-    // 頁面載入時，初始化應用程式
+    // --- Initialization on page load ---
     window.onload = () => {
-        clearAllInputsAndResults(); // 確保初始狀態是完全清除的
-        btnAddDebtor.click(); // 預設新增一個債務人輸入框
-        btnAddCourse.click(); // 預設新增一個課程輸入框
-        chartsArea.style.display = 'none'; // 隱藏圖表區直到計算
+        clearAllInputsAndResults(); // Ensure a clean start
+        btnAddDebtor.click(); // Add a default debtor input field
+        btnAddCourse.click(); // Add a default course input field
+        chartsArea.style.display = 'none'; // Hide chart area initially
+        btnClearResults.disabled = false; // Enable "Clear All" from the start
     };
 
-    // 為所有會影響計算結果的輸入欄位添加事件監聽器，以便在值改變時清空結果顯示
+    // --- Input Change Event Listeners ---
+    // Clear results display when any input changes, as the calculation becomes outdated
     inputSalary.addEventListener('input', clearResultDisplayOnly);
     inputExpense.addEventListener('input', clearResultDisplayOnly);
     selectStartMonth.addEventListener('change', clearResultDisplayOnly);
