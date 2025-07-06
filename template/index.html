@@ -1,732 +1,775 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>💰 Q版還款試算表 - 完整版</title>
-  <style>
-    /* --- 基本CSS Reset 與字型設定 --- */
-    * {
-      box-sizing: border-box;
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>💰 Q版還款試算表 - 完整版</title>
+  <style>
+    /* --- 基本CSS Reset 與字型設定 --- */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: 'Microsoft JhengHei', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #fef6f6;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    header {
+      background: #c83e3e;
+      color: #fff;
+      padding: 18px 20px;
+      font-weight: 900;
+      font-size: 1.7rem;
+      text-align: center;
+      box-shadow: 0 4px 6px rgba(200, 62, 62, 0.5);
+      user-select: none;
+    }
+    main {
+      flex-grow: 1;
+      max-width: 960px;
+      margin: 20px auto 60px auto;
+      background: #fff5f5;
+      border-radius: 12px;
+      box-shadow: 0 6px 16px #f2b7b7cc;
+      padding: 20px 30px;
+    }
+    h2 {
+      border-left: 5px solid #c83e3e;
+      padding-left: 12px;
+      color: #a13131;
+      margin-top: 30px;
+      margin-bottom: 12px;
+      font-weight: 800;
+    }
+    label {
+      display: block;
+      margin: 10px 0 6px 0;
+      font-weight: 600;
+      color: #7a2a2a;
+    }
+    input[type="number"],
+    input[type="text"],
+    select {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 2px solid #f6c2c2;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+    }
+    input[type="number"]:focus,
+    input[type="text"]:focus,
+    select:focus {
+      border-color: #c83e3e;
+      outline: none;
+    }
+    button {
+      margin-top: 15px;
+      padding: 12px 16px;
+      border-radius: 28px;
+      border: none;
+      background: #c83e3e;
+      color: white;
+      font-weight: 700;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      user-select: none;
+    }
+    button + button { /* Added for spacing between buttons */
+        margin-left: 10px;
     }
-    body {
-      margin: 0;
-      font-family: 'Microsoft JhengHei', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #fef6f6;
-      color: #333;
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-    }
-    header {
-      background: #c83e3e;
-      color: #fff;
-      padding: 18px 20px;
-      font-weight: 900;
-      font-size: 1.7rem;
-      text-align: center;
-      box-shadow: 0 4px 6px rgba(200, 62, 62, 0.5);
-      user-select: none;
-    }
-    main {
-      flex-grow: 1;
-      max-width: 960px;
-      margin: 20px auto 60px auto;
-      background: #fff5f5;
-      border-radius: 12px;
-      box-shadow: 0 6px 16px #f2b7b7cc;
-      padding: 20px 30px;
-    }
-    h2 {
-      border-left: 5px solid #c83e3e;
-      padding-left: 12px;
-      color: #a13131;
-      margin-top: 30px;
-      margin-bottom: 12px;
-      font-weight: 800;
-    }
-    label {
-      display: block;
-      margin: 10px 0 6px 0;
-      font-weight: 600;
-      color: #7a2a2a;
-    }
-    input[type="number"],
-    input[type="text"],
-    select {
-      width: 100%;
-      padding: 10px 14px;
-      border-radius: 12px;
-      border: 2px solid #f6c2c2;
-      font-size: 1rem;
-      transition: border-color 0.3s;
-    }
-    input[type="number"]:focus,
-    input[type="text"]:focus,
-    select:focus {
-      border-color: #c83e3e;
-      outline: none;
-    }
-    button {
-      margin-top: 15px;
-      padding: 12px 16px;
-      border-radius: 28px;
-      border: none;
-      background: #c83e3e;
-      color: white;
-      font-weight: 700;
-      font-size: 1.1rem;
-      cursor: pointer;
-      transition: background-color 0.3s;
-      user-select: none;
-    }
-    button:hover {
-      background: #a83131;
-    }
-    .list-group {
-      margin: 8px 0 16px 0;
-    }
-    .list-item {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
-      background: #f6c2c2aa;
-      border-radius: 14px;
-      padding: 12px 16px;
-      align-items: center;
-      justify-content: space-between;
-      transition: background-color 0.3s;
-    }
-    .list-item:hover {
-      background: #f08a8a;
-    }
-    .list-item input[type="text"],
-    .list-item input[type="number"] {
-      flex: 1;
-      font-size: 1rem;
-      border: 1.5px solid #f9a3a3;
-      border-radius: 8px;
-      padding: 6px 10px;
-    }
-    .btn-remove {
-      flex-shrink: 0;
-      background: #a02a2a;
-      border-radius: 50%;
-      color: white;
-      font-weight: 900;
-      border: none;
-      width: 30px;
-      height: 30px;
-      font-size: 1.3rem;
-      line-height: 28px;
-      cursor: pointer;
-      user-select: none;
-      box-shadow: 0 0 6px #a02a2aaa;
-      transition: background-color 0.2s;
-    }
-    .btn-remove:hover {
-      background: #d14a4a;
-      box-shadow: 0 0 8px #d14a4aaa;
-    }
-    #resultArea {
-      margin-top: 20px;
-      background: #fceaea;
-      border-radius: 18px;
-      border: 2px dashed #c83e3e;
-      padding: 18px 24px;
-      font-weight: 700;
-      white-space: pre-wrap;
-      color: #7a2a2a;
-      min-height: 120px;
-      overflow-y: auto;
-    }
-    #chartsArea {
-      margin-top: 24px;
-      background: #fff0f0;
-      padding: 12px 16px;
-      border-radius: 18px;
-      box-shadow: inset 0 0 8px #f9a3a3cc;
-      display: flex;
-      justify-content: center;
-    }
-    canvas {
-      max-width: 100%;
-      height: auto !important;
-    }
-    footer {
-      background: #c83e3e;
-      color: #fff;
-      text-align: center;
-      padding: 16px 10px;
-      font-weight: 600;
-      user-select: none;
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      font-size: 0.95rem;
-    }
-    footer a {
-      color: #fff0f0;
-      text-decoration: none;
-      margin: 0 8px;
-      font-weight: 700;
-      transition: color 0.3s;
-    }
-    footer a:hover {
-      color: #ffd1d1;
-      text-decoration: underline;
-    }
-    @media (max-width: 480px) {
-      main {
-        margin: 10px 10px 80px 10px;
-        padding: 16px 14px;
-      }
-      .list-item {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-      .list-item input[type="text"],
-      .list-item input[type="number"] {
-        width: 100%;
-      }
-      .btn-remove {
-        align-self: flex-end;
-        margin-top: 8px;
-      }
-    }
-  </style>
+    button:hover {
+      background: #a83131;
+    }
+    .list-group {
+      margin: 8px 0 16px 0;
+    }
+    .list-item {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      background: #f6c2c2aa;
+      border-radius: 14px;
+      padding: 12px 16px;
+      align-items: center;
+      justify-content: space-between;
+      transition: background-color 0.3s;
+    }
+    .list-item:hover {
+      background: #f08a8a;
+    }
+    .list-item input[type="text"],
+    .list-item input[type="number"] {
+      flex: 1;
+      font-size: 1rem;
+      border: 1.5px solid #f9a3a3;
+      border-radius: 8px;
+      padding: 6px 10px;
+    }
+    .btn-remove {
+      flex-shrink: 0;
+      background: #a02a2a;
+      border-radius: 50%;
+      color: white;
+      font-weight: 900;
+      border: none;
+      width: 30px;
+      height: 30px;
+      font-size: 1.3rem;
+      line-height: 28px;
+      cursor: pointer;
+      user-select: none;
+      box-shadow: 0 0 6px #a02a2aaa;
+      transition: background-color 0.2s;
+    }
+    .btn-remove:hover {
+      background: #d14a4a;
+      box-shadow: 0 0 8px #d14a4aaa;
+    }
+    #resultArea {
+      margin-top: 20px;
+      background: #fceaea;
+      border-radius: 18px;
+      border: 2px dashed #c83e3e;
+      padding: 18px 24px;
+      font-weight: 700;
+      white-space: pre-wrap;
+      color: #7a2a2a;
+      min-height: 120px;
+      overflow-y: auto;
+    }
+    #chartsArea {
+      margin-top: 24px;
+      background: #fff0f0;
+      padding: 12px 16px;
+      border-radius: 18px;
+      box-shadow: inset 0 0 8px #f9a3a3cc;
+      display: flex;
+      justify-content: center;
+    }
+    canvas {
+      max-width: 100%;
+      height: auto !important;
+    }
+    footer {
+      background: #c83e3e;
+      color: #fff;
+      text-align: center;
+      padding: 16px 10px;
+      font-weight: 600;
+      user-select: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      font-size: 0.95rem;
+    }
+    footer a {
+      color: #fff0f0;
+      text-decoration: none;
+      margin: 0 8px;
+      font-weight: 700;
+      transition: color 0.3s;
+    }
+    footer a:hover {
+      color: #ffd1d1;
+      text-decoration: underline;
+    }
+    @media (max-width: 480px) {
+      main {
+        margin: 10px 10px 80px 10px;
+        padding: 16px 14px;
+      }
+      .list-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .list-item input[type="text"],
+      .list-item input[type="number"] {
+        width: 100%;
+      }
+      .btn-remove {
+        align-self: flex-end;
+        margin-top: 8px;
+      }
+    }
+  </style>
 </head>
 <body>
 
 <header>💰 Q版還款試算表 - 完整版</header>
 
 <main>
-  <!-- 薪資與生活費輸入 -->
-  <section id="basicInfo">
-    <h2>基本資料</h2>
-    <label for="inputSalary">每月薪資（元）</label>
-    <input type="number" id="inputSalary" min="0" placeholder="請輸入每月薪資" />
-    <label for="inputExpense">每月生活費（元）</label>
-    <input type="number" id="inputExpense" min="0" placeholder="請輸入每月生活費" />
-  </section>
+    <section id="basicInfo">
+    <h2>基本資料</h2>
+    <label for="inputSalary">每月薪資（元）</label>
+    <input type="number" id="inputSalary" min="0" placeholder="請輸入每月薪資" />
+    <label for="inputExpense">每月生活費（元）</label>
+    <input type="number" id="inputExpense" min="0" placeholder="請輸入每月生活費" />
+  </section>
 
-  <!-- 債務人清單 -->
-  <section id="debtorsSection">
-    <h2>債務人清單</h2>
-    <div id="debtorsList" class="list-group"></div>
-    <button id="btnAddDebtor" type="button">＋ 新增債務人</button>
-  </section>
+    <section id="debtorsSection">
+    <h2>債務人清單</h2>
+    <div id="debtorsList" class="list-group"></div>
+    <button id="btnAddDebtor" type="button">＋ 新增債務人</button>
+  </section>
 
-  <!-- 課程清單 -->
-  <section id="coursesSection">
-    <h2>課程清單</h2>
-    <div id="coursesList" class="list-group"></div>
-    <button id="btnAddCourse" type="button">＋ 新增課程</button>
-  </section>
+    <section id="coursesSection">
+    <h2>課程清單</h2>
+    <div id="coursesList" class="list-group"></div>
+    <button id="btnAddCourse" type="button">＋ 新增課程</button>
+  </section>
 
-  <!-- 起始月份 -->
-  <section id="startMonthSection">
-    <h2>起始月份</h2>
-    <label for="selectStartMonth">選擇起始月份</label>
-    <select id="selectStartMonth">
-      <option value="1">1 月</option>
-      <option value="2">2 月</option>
-      <option value="3">3 月</option>
-      <option value="4">4 月</option>
-      <option value="5">5 月</option>
-      <option value="6">6 月</option>
-      <option value="7">7 月</option>
-      <option value="8">8 月</option>
-      <option value="9">9 月</option>
-      <option value="10">10 月</option>
-      <option value="11">11 月</option>
-      <option value="12">12 月</option>
-    </select>
-  </section>
+    <section id="startMonthSection">
+    <h2>起始月份</h2>
+    <label for="selectStartMonth">選擇起始月份</label>
+    <select id="selectStartMonth">
+      <option value="1">1 月</option>
+      <option value="2">2 月</option>
+      <option value="3">3 月</option>
+      <option value="4">4 月</option>
+      <option value="5">5 月</option>
+      <option value="6">6 月</option>
+      <option value="7">7 月</option>
+      <option value="8">8 月</option>
+      <option value="9">9 月</option>
+      <option value="10">10 月</option>
+      <option value="11">11 月</option>
+      <option value="12">12 月</option>
+    </select>
+  </section>
 
-  <!-- 操作按鈕 -->
-  <section id="actions">
-    <button id="btnCalculate" type="button">開始計算</button>
-    <button id="btnExportCSV" type="button" disabled>匯出 CSV</button>
-  </section>
+    <section id="actions">
+    <button id="btnCalculate" type="button">開始計算</button>
+    <button id="btnExportCSV" type="button" disabled>匯出 CSV</button>
+    <button id="btnClearResults" type="button" disabled>清除結果</button>
+    <button id="btnCopyResults" type="button" disabled>複製結果</button>
+  </section>
 
-  <!-- 計算結果區 -->
-  <section id="resultSection">
-    <h2>計算結果</h2>
-    <pre id="resultArea">請填寫資料並按「開始計算」</pre>
-  </section>
+    <section id="resultSection">
+    <h2>計算結果</h2>
+    <pre id="resultArea">請填寫資料並按「開始計算」</pre>
+  </section>
 
-  <!-- 圖表區 -->
-  <section id="chartsSection">
-    <h2>債務比例圓餅圖</h2>
-    <div id="chartsArea">
-      <canvas id="pieChart"></canvas>
-    </div>
-  </section>
-  <section id="contactForm" style="margin-top: 50px;">
-  <h2>聯絡我們</h2>
-  <form action="https://formsubmit.co/a3017255@gmail.com" method="POST">
-    <label for="name">您的姓名：</label>
-    <input type="text" id="name" name="name" required><br><br>
+    <section id="chartsSection">
+    <h2>債務比例圓餅圖</h2>
+    <div id="chartsArea">
+      <canvas id="pieChart"></canvas>
+    </div>
+  </section>
+  <section id="contactForm" style="margin-top: 50px;">
+  <h2>聯絡我們</h2>
+  <form action="https://formsubmit.co/a3017255@gmail.com" method="POST">
+    <label for="name">您的姓名：</label>
+    <input type="text" id="name" name="name" required><br><br>
 
-    <label for="email">您的 Email：</label>
-    <input type="email" id="email" name="email" required><br><br>
+    <label for="email">您的 Email：</label>
+    <input type="email" id="email" name="email" required><br><br>
 
-    <label for="message">訊息內容：</label><br>
-    <textarea id="message" name="message" rows="5" required></textarea><br><br>
+    <label for="message">訊息內容：</label><br>
+    <textarea id="message" name="message" rows="5" required></textarea><br><br>
 
-    <button type="submit">送出</button>
-  </form>
+    <button type="submit">送出</button>
+  </form>
 </section>
 </main>
 
 <footer style="text-align: center; font-size: 0.9rem; padding: 14px 10px; background: #ffbaba55; color: #7a2f2f; margin-top: auto; box-shadow: inset 0 1px 4px #ffbabacc;">
-  <a href="/about" target="_blank" rel="noopener noreferrer" style="color: #d14a4a; font-weight: 700; text-decoration: none; margin: 0 8px;">關於我們</a> | 
-  <a href="#contactForm" style="color: #d14a4a; font-weight: 700; text-decoration: none; margin: 0 8px;">聯絡我們</a> | 
-  <a href="/privacy" target="_blank" rel="noopener noreferrer" style="color: #d14a4a; font-weight: 700; text-decoration: none; margin: 0 8px;">隱私權政策</a> | 
-  <a href="/terms" target="_blank" rel="noopener noreferrer" style="color: #d14a4a; font-weight: 700; text-decoration: none; margin: 0 8px;">服務條款</a>
+  <a href="/about" target="_blank" rel="noopener noreferrer" style="color: #d14a4a; font-weight: 700; text-decoration: none; margin: 0 8px;">關於我們</a> | 
+  <a href="#contactForm" style="color: #d14a4a; font-weight: 700; text-decoration: none; margin: 0 8px;">聯絡我們</a> | 
+  <a href="/privacy" target="_blank" rel="noopener noreferrer" style="color: #d14a4a; font-weight: 700; text-decoration: none; margin: 0 8px;">隱私權政策</a> | 
+  <a href="/terms" target="_blank" rel="noopener noreferrer" style="color: #d14a4a; font-weight: 700; text-decoration: none; margin: 0 8px;">服務條款</a>
 </footer>
 
-<!-- Chart.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-  // 全局狀態
-  const state = {
-    salary: 0,
-    livingExpense: 0,
-    startMonth: 1,
-    debtors: [],
-    courses: [],
-    monthRecords: [],
-  };
+  // 全局狀態
+  const state = {
+    salary: 0,
+    livingExpense: 0,
+    startMonth: 1,
+    debtors: [],
+    courses: [],
+    monthRecords: [],
+  };
 
-  // DOM Elements
-  const inputSalary = document.getElementById('inputSalary');
-  const inputExpense = document.getElementById('inputExpense');
-  const selectStartMonth = document.getElementById('selectStartMonth');
-  const debtorsList = document.getElementById('debtorsList');
-  const coursesList = document.getElementById('coursesList');
-  const btnAddDebtor = document.getElementById('btnAddDebtor');
-  const btnAddCourse = document.getElementById('btnAddCourse');
-  const btnCalculate = document.getElementById('btnCalculate');
-  const btnExportCSV = document.getElementById('btnExportCSV');
-  const resultArea = document.getElementById('resultArea');
+  // DOM Elements
+  const inputSalary = document.getElementById('inputSalary');
+  const inputExpense = document.getElementById('inputExpense');
+  const selectStartMonth = document.getElementById('selectStartMonth');
+  const debtorsList = document.getElementById('debtorsList');
+  const coursesList = document.getElementById('coursesList');
+  const btnAddDebtor = document.getElementById('btnAddDebtor');
+  const btnAddCourse = document.getElementById('btnAddCourse');
+  const btnCalculate = document.getElementById('btnCalculate');
+  const btnExportCSV = document.getElementById('btnExportCSV');
+  const btnClearResults = document.getElementById('btnClearResults'); // New button
+  const btnCopyResults = document.getElementById('btnCopyResults'); // New button
+  const resultArea = document.getElementById('resultArea');
+  const chartsArea = document.getElementById('chartsArea'); // Get charts area
 
-  let pieChart = null;
+  let pieChart = null;
 
-  // 建立債務人輸入區塊
-  function createDebtorItem(name = '', debt = '') {
-    const div = document.createElement('div');
-    div.className = 'list-item';
+  // 建立債務人輸入區塊
+  function createDebtorItem(name = '', debt = '') {
+    const div = document.createElement('div');
+    div.className = 'list-item';
 
-    const inputName = document.createElement('input');
-    inputName.type = 'text';
-    inputName.placeholder = '姓名';
-    inputName.value = name;
-    inputName.autocomplete = "off";
+    const inputName = document.createElement('input');
+    inputName.type = 'text';
+    inputName.placeholder = '姓名';
+    inputName.value = name;
+    inputName.autocomplete = "off";
 
-    const inputDebt = document.createElement('input');
-    inputDebt.type = 'number';
-    inputDebt.placeholder = '欠款金額';
-    inputDebt.min = 0;
-    inputDebt.value = debt;
+    const inputDebt = document.createElement('input');
+    inputDebt.type = 'number';
+    inputDebt.placeholder = '欠款金額';
+    inputDebt.min = 0;
+    inputDebt.value = debt;
 
-    const btnRemove = document.createElement('button');
-    btnRemove.className = 'btn-remove';
-    btnRemove.title = "移除債務人";
-    btnRemove.innerHTML = '&times;';
-    btnRemove.onclick = () => {
-      div.remove();
-      updateStateFromUI();
-    };
+    const btnRemove = document.createElement('button');
+    btnRemove.className = 'btn-remove';
+    btnRemove.title = "移除債務人";
+    btnRemove.innerHTML = '&times;';
+    btnRemove.onclick = () => {
+      div.remove();
+      updateStateFromUI();
+      clearAndDisableResults(); // Clear results when debtor is removed
+    };
 
-    // 輸入改變即更新狀態
-    inputName.addEventListener('input', updateStateFromUI);
-    inputDebt.addEventListener('input', updateStateFromUI);
+    // 輸入改變即更新狀態
+    inputName.addEventListener('input', updateStateFromUI);
+    inputDebt.addEventListener('input', updateStateFromUI);
 
-    div.appendChild(inputName);
-    div.appendChild(inputDebt);
-    div.appendChild(btnRemove);
+    div.appendChild(inputName);
+    div.appendChild(inputDebt);
+    div.appendChild(btnRemove);
 
-    return div;
-  }
+    return div;
+  }
 
-  // 建立課程輸入區塊
-  function createCourseItem(name = '', fee = '', months = '') {
-    const div = document.createElement('div');
-    div.className = 'list-item';
+  // 建立課程輸入區塊
+  function createCourseItem(name = '', fee = '', months = '') {
+    const div = document.createElement('div');
+    div.className = 'list-item';
 
-    const inputName = document.createElement('input');
-    inputName.type = 'text';
-    inputName.placeholder = '課程名稱';
-    inputName.value = name;
-    inputName.autocomplete = "off";
+    const inputName = document.createElement('input');
+    inputName.type = 'text';
+    inputName.placeholder = '課程名稱';
+    inputName.value = name;
+    inputName.autocomplete = "off";
 
-    const inputFee = document.createElement('input');
-    inputFee.type = 'number';
-    inputFee.placeholder = '課程費用';
-    inputFee.min = 0;
-    inputFee.value = fee;
+    const inputFee = document.createElement('input');
+    inputFee.type = 'number';
+    inputFee.placeholder = '課程費用';
+    inputFee.min = 0;
+    inputFee.value = fee;
 
-    const inputMonths = document.createElement('input');
-    inputMonths.type = 'number';
-    inputMonths.placeholder = '期數（月）';
-    inputMonths.min = 1;
-    inputMonths.value = months;
+    const inputMonths = document.createElement('input');
+    inputMonths.type = 'number';
+    inputMonths.placeholder = '期數（月）';
+    inputMonths.min = 1;
+    inputMonths.value = months;
 
-    const btnRemove = document.createElement('button');
-    btnRemove.className = 'btn-remove';
-    btnRemove.title = "移除課程";
-    btnRemove.innerHTML = '&times;';
-    btnRemove.onclick = () => {
-      div.remove();
-      updateStateFromUI();
-    };
+    const btnRemove = document.createElement('button');
+    btnRemove.className = 'btn-remove';
+    btnRemove.title = "移除課程";
+    btnRemove.innerHTML = '&times;';
+    btnRemove.onclick = () => {
+      div.remove();
+      updateStateFromUI();
+      clearAndDisableResults(); // Clear results when course is removed
+    };
 
-    // 輸入改變即更新狀態
-    inputName.addEventListener('input', updateStateFromUI);
-    inputFee.addEventListener('input', updateStateFromUI);
-    inputMonths.addEventListener('input', updateStateFromUI);
+    // 輸入改變即更新狀態
+    inputName.addEventListener('input', updateStateFromUI);
+    inputFee.addEventListener('input', updateStateFromUI);
+    inputMonths.addEventListener('input', updateStateFromUI);
 
-    div.appendChild(inputName);
-    div.appendChild(inputFee);
-    div.appendChild(inputMonths);
-    div.appendChild(btnRemove);
+    div.appendChild(inputName);
+    div.appendChild(inputFee);
+    div.appendChild(inputMonths);
+    div.appendChild(btnRemove);
 
-    return div;
-  }
+    return div;
+  }
 
-  // 新增債務人
-  btnAddDebtor.addEventListener('click', () => {
-    const item = createDebtorItem();
-    debtorsList.appendChild(item);
-  });
+  // 新增債務人
+  btnAddDebtor.addEventListener('click', () => {
+    const item = createDebtorItem();
+    debtorsList.appendChild(item);
+    clearAndDisableResults(); // Clear results when new debtor is added
+  });
 
-  // 新增課程
-  btnAddCourse.addEventListener('click', () => {
-    const item = createCourseItem();
-    coursesList.appendChild(item);
-  });
+  // 新增課程
+  btnAddCourse.addEventListener('click', () => {
+    const item = createCourseItem();
+    coursesList.appendChild(item);
+    clearAndDisableResults(); // Clear results when new course is added
+  });
 
-  // 從UI同步狀態物件
-  function updateStateFromUI() {
-    state.salary = parseFloat(inputSalary.value) || 0;
-    state.livingExpense = parseFloat(inputExpense.value) || 0;
-    state.startMonth = parseInt(selectStartMonth.value, 10) || 1;
+  // 從UI同步狀態物件
+  function updateStateFromUI() {
+    state.salary = parseFloat(inputSalary.value) || 0;
+    state.livingExpense = parseFloat(inputExpense.value) || 0;
+    state.startMonth = parseInt(selectStartMonth.value, 10) || 1;
 
-    state.debtors = [];
-    [...debtorsList.children].forEach(div => {
-      const inputs = div.querySelectorAll('input');
-      const name = inputs[0].value.trim();
-      const debt = parseFloat(inputs[1].value);
-      if (name && !isNaN(debt) && debt > 0) {
-        state.debtors.push({ name, debt });
-      }
-    });
+    state.debtors = [];
+    [...debtorsList.children].forEach(div => {
+      const inputs = div.querySelectorAll('input');
+      const name = inputs[0].value.trim();
+      const debt = parseFloat(inputs[1].value);
+      if (name && !isNaN(debt) && debt > 0) {
+        state.debtors.push({ name, debt });
+      }
+    });
 
-    state.courses = [];
-    [...coursesList.children].forEach(div => {
-      const inputs = div.querySelectorAll('input');
-      const name = inputs[0].value.trim() || "課程";
-      const fee = parseFloat(inputs[1].value);
-      const months = parseInt(inputs[2].value, 10);
-      if (!isNaN(fee) && fee > 0 && !isNaN(months) && months > 0) {
-        state.courses.push({ name, fee, months });
-      }
-    });
+    state.courses = [];
+    [...coursesList.children].forEach(div => {
+      const inputs = div.querySelectorAll('input');
+      const name = inputs[0].value.trim() || "課程";
+      const fee = parseFloat(inputs[1].value);
+      const months = parseInt(inputs[2].value, 10);
+      if (!isNaN(fee) && fee > 0 && !isNaN(months) && months > 0) {
+        state.courses.push({ name, fee, months });
+      }
+    });
 
-    btnExportCSV.disabled = true;
-  }
+    // Disable result buttons until calculation is performed
+    btnExportCSV.disabled = true;
+    btnClearResults.disabled = true;
+    btnCopyResults.disabled = true;
+  }
 
-  // 顯示錯誤訊息
-  function showError(msg) {
-    alert(msg);
-  }
+  // 顯示錯誤訊息
+  function showError(msg) {
+    alert(msg);
+  }
 
-  // 計算邏輯（與你原本Python邏輯相同）
-  function calculateRepaymentPlan() {
-    if (state.salary <= 0) {
-      showError('請輸入有效的薪資');
-      return;
-    }
-    if (state.livingExpense < 0) {
-      showError('生活費不可為負數');
-      return;
-    }
-    if (state.livingExpense >= state.salary) {
-      showError('生活費不可大於或等於薪資');
-      return;
-    }
-    if (state.debtors.length === 0 && state.courses.length === 0) {
-      showError('請至少新增一位債務人或一個課程');
-      return;
-    }
+  // 計算邏輯（與你原本Python邏輯相同）
+  function calculateRepaymentPlan() {
+    if (state.salary <= 0) {
+      showError('請輸入有效的薪資');
+      return;
+    }
+    if (state.livingExpense < 0) {
+      showError('生活費不可為負數');
+      return;
+    }
+    if (state.livingExpense >= state.salary) {
+      showError('生活費不可大於或等於薪資');
+      return;
+    }
+    if (state.debtors.length === 0 && state.courses.length === 0) {
+      showError('請至少新增一位債務人或一個課程');
+      return;
+    }
 
-    const disposableIncome = state.salary - state.livingExpense;
+    const disposableIncome = state.salary - state.livingExpense;
 
-    // 初始化債務人與課程剩餘金額
-    const debtsRemaining = {};
-    state.debtors.forEach(d => debtsRemaining[d.name] = d.debt);
-    const coursesRemaining = state.courses.map(c => ({
-      ...c,
-      monthlyPayment: c.fee / c.months,
-      remainingFee: c.fee
-    }));
+    // 初始化債務人與課程剩餘金額
+    const debtsRemaining = {};
+    state.debtors.forEach(d => debtsRemaining[d.name] = d.debt);
+    const coursesRemaining = state.courses.map(c => ({
+      ...c,
+      monthlyPayment: c.fee / c.months,
+      remainingFee: c.fee
+    }));
 
-    const startYear = new Date().getFullYear();
+    const startYear = new Date().getFullYear();
 
-    const monthRecords = [];
-    let monthCount = 0;
-    const maxMonths = 2000;
+    const monthRecords = [];
+    let monthCount = 0;
+    const maxMonths = 2000;
 
-    const repayCompletionDates = {};
-    const courseCompletionDates = {};
+    const repayCompletionDates = {};
+    const courseCompletionDates = {};
 
-    while (true) {
-      // 判斷是否全部還清
-      const allDebtsCleared = Object.values(debtsRemaining).every(v => v <= 0.001);
-      const allCoursesCleared = coursesRemaining.every(c => c.remainingFee <= 0.001);
-      if (allDebtsCleared && allCoursesCleared) break;
-      if (monthCount > maxMonths) {
-        showError('計算超過最大月份，請檢查輸入是否正確');
-        break;
-      }
+    while (true) {
+      // 判斷是否全部還清
+      const allDebtsCleared = Object.values(debtsRemaining).every(v => v <= 0.001);
+      const allCoursesCleared = coursesRemaining.every(c => c.remainingFee <= 0.001);
+      if (allDebtsCleared && allCoursesCleared) break;
+      if (monthCount > maxMonths) {
+        showError('計算超過最大月份，請檢查輸入是否正確');
+        break;
+      }
 
-      const currentMonthIndex = (state.startMonth - 1 + monthCount) % 12 + 1;
-      const currentYear = startYear + Math.floor((state.startMonth - 1 + monthCount) / 12);
+      const currentMonthIndex = (state.startMonth - 1 + monthCount) % 12 + 1;
+      const currentYear = startYear + Math.floor((state.startMonth - 1 + monthCount) / 12);
 
-      // 本月可用於還款的金額
-      let budget = disposableIncome;
+      // 本月可用於還款的金額
+      let budget = disposableIncome;
 
-      // 優先還債務人，依序平均分配
-      const activeDebtors = Object.entries(debtsRemaining).filter(([_, debt]) => debt > 0.001);
-      if (activeDebtors.length > 0) {
-        // 平均分配預算給每個活債務人
-        const budgetPerDebtor = budget / (activeDebtors.length + coursesRemaining.filter(c => c.remainingFee > 0.001).length);
-        activeDebtors.forEach(([name, debt]) => {
-          const pay = Math.min(debt, budgetPerDebtor);
-          debtsRemaining[name] -= pay;
-          budget -= pay;
-          if (debtsRemaining[name] <= 0.001 && !(name in repayCompletionDates)) {
-            repayCompletionDates[name] = { year: currentYear, month: currentMonthIndex };
-          }
-        });
-      }
+      // 優先還債務人，依序平均分配
+      const activeDebtors = Object.entries(debtsRemaining).filter(([_, debt]) => debt > 0.001);
+      if (activeDebtors.length > 0) {
+        // 平均分配預算給每個活債務人
+        const budgetPerDebtor = budget / (activeDebtors.length + coursesRemaining.filter(c => c.remainingFee > 0.001).length);
+        activeDebtors.forEach(([name, debt]) => {
+          const pay = Math.min(debt, budgetPerDebtor);
+          debtsRemaining[name] -= pay;
+          budget -= pay;
+          if (debtsRemaining[name] <= 0.001 && !(name in repayCompletionDates)) {
+            repayCompletionDates[name] = { year: currentYear, month: currentMonthIndex };
+          }
+        });
+      }
 
-      // 剩下預算分給課程月付
-      const activeCourses = coursesRemaining.filter(c => c.remainingFee > 0.001);
-      if (activeCourses.length > 0 && budget > 0) {
-        // 平均分配預算給活躍課程
-        const budgetPerCourse = budget / activeCourses.length;
-        activeCourses.forEach(course => {
-          const pay = Math.min(course.remainingFee, budgetPerCourse, course.monthlyPayment);
-          course.remainingFee -= pay;
-          budget -= pay;
-          if (course.remainingFee <= 0.001 && !(course.name in courseCompletionDates)) {
-            courseCompletionDates[course.name] = { year: currentYear, month: currentMonthIndex };
-          }
-        });
-      }
+      // 剩下預算分給課程月付
+      const activeCourses = coursesRemaining.filter(c => c.remainingFee > 0.001);
+      if (activeCourses.length > 0 && budget > 0) {
+        // 平均分配預算給活躍課程
+        const budgetPerCourse = budget / activeCourses.length;
+        activeCourses.forEach(course => {
+          const pay = Math.min(course.remainingFee, budgetPerCourse, course.monthlyPayment);
+          course.remainingFee -= pay;
+          budget -= pay;
+          if (course.remainingFee <= 0.001 && !(course.name in courseCompletionDates)) {
+            courseCompletionDates[course.name] = { year: currentYear, month: currentMonthIndex };
+          }
+        });
+      }
 
-      // 記錄本月資料
-      monthRecords.push({
-        year: currentYear,
-        month: currentMonthIndex,
-        debtsRemaining: JSON.parse(JSON.stringify(debtsRemaining)),
-        coursesRemaining: coursesRemaining.map(c => ({ name: c.name, remainingFee: c.remainingFee })),
-        budgetLeft: budget
-      });
+      // 記錄本月資料
+      monthRecords.push({
+        year: currentYear,
+        month: currentMonthIndex,
+        debtsRemaining: JSON.parse(JSON.stringify(debtsRemaining)),
+        coursesRemaining: coursesRemaining.map(c => ({ name: c.name, remainingFee: c.remainingFee })),
+        budgetLeft: budget
+      });
 
-      monthCount++;
-    }
+      monthCount++;
+    }
 
-    state.monthRecords = monthRecords;
+    state.monthRecords = monthRecords;
 
-    return {
-      repayCompletionDates,
-      courseCompletionDates,
-      monthCount,
-      disposableIncome
-    };
-  }
+    return {
+      repayCompletionDates,
+      courseCompletionDates,
+      monthCount,
+      disposableIncome
+    };
+  }
 
-  // 顯示結果到頁面
-  function displayResults(calcResult) {
-  let text = `📅 計算起始月份：${state.startMonth} 月\n`;
-  text += `💰 薪資：${state.salary.toLocaleString()} 元\n`;
-  text += `🏠 生活費：${state.livingExpense.toLocaleString()} 元\n`;
-  text += `🔢 總還款期數：約 ${calcResult.monthCount} 個月\n\n`;
+  // 顯示結果到頁面
+  function displayResults(calcResult) {
+  let text = `📅 計算起始月份：${state.startMonth} 月\n`;
+  text += `💰 薪資：${state.salary.toLocaleString()} 元\n`;
+  text += `🏠 生活費：${state.livingExpense.toLocaleString()} 元\n`;
+  text += `🔢 總還款期數：約 ${calcResult.monthCount} 個月\n\n`;
 
-  // 還款完成時間
-  text += '💳 債務人還清時間：\n';
-  if (Object.keys(calcResult.repayCompletionDates).length === 0) {
-    text += '  無債務人或債務已清。\n';
-  } else {
-    for (const [name, date] of Object.entries(calcResult.repayCompletionDates)) {
-      text += `  - ${name} 🗓️ ${date.year}/${String(date.month).padStart(2, '0')} 還清\n`;
-    }
-  }
+  // 還款完成時間
+  text += '💳 債務人還清時間：\n';
+  if (Object.keys(calcResult.repayCompletionDates).length === 0) {
+    text += '  無債務人或債務已清。\n';
+  } else {
+    for (const [name, date] of Object.entries(calcResult.repayCompletionDates)) {
+      text += `  - ${name} 🗓️ ${date.year}/${String(date.month).padStart(2, '0')} 還清\n`;
+    }
+  }
 
-  // 每月還款明細
-  text += `\n📖 每月還款分配給債務人：\n`;
+  // 每月還款明細
+  text += `\n📖 每月還款分配給債務人：\n`;
 
-  state.monthRecords.forEach((rec, index) => {
-    text += `📆 ${rec.year}/${String(rec.month).padStart(2, '0')} (第 ${index + 1} 月)\n`;
+  state.monthRecords.forEach((rec, index) => {
+    text += `📆 ${rec.year}/${String(rec.month).padStart(2, '0')} (第 ${index + 1} 月)\n`;
 
-    const repayers = Object.entries(rec.debtsRemaining);
+    const repayers = Object.entries(rec.debtsRemaining);
 
-    repayers.forEach(([name, remaining]) => {
-      // 上個月的剩餘金額
-      let prevDebt = 0;
-      if (index === 0) {
-        // 第1個月，用原始金額
-        const debtor = state.debtors.find(d => d.name === name);
-        prevDebt = debtor ? debtor.debt : 0;
-      } else {
-        // 其他月份，用上個月剩餘
-        prevDebt = state.monthRecords[index - 1].debtsRemaining[name];
-      }
+    repayers.forEach(([name, remaining]) => {
+      // 上個月的剩餘金額
+      let prevDebt = 0;
+      if (index === 0) {
+        // 第1個月，用原始金額
+        const debtor = state.debtors.find(d => d.name === name);
+        prevDebt = debtor ? debtor.debt : 0;
+      } else {
+        // 其他月份，用上個月剩餘
+        prevDebt = state.monthRecords[index - 1].debtsRemaining[name];
+      }
 
-      // 計算本月實際還款金額
-      const paid = prevDebt - remaining;
-      if (paid > 0.001) {
-        text += `  💳 ${name} 還 ${paid.toFixed(2)} 元\n`;
-      }
-    });
+      // 計算本月實際還款金額
+      const paid = prevDebt - remaining;
+      if (paid > 0.001) {
+        text += `  💳 ${name} 還 ${paid.toFixed(2)} 元\n`;
+      }
+    });
 
-    text += `━━━━━━━━━━━━━━━━━━━━━\n`;
-  });
+    text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+  });
 
-  resultArea.textContent = text;
+  resultArea.textContent = text;
 }
-  // 繪製圓餅圖 (債務比例)
-  function renderPieChart() {
-    if (pieChart) {
-      pieChart.destroy();
-      pieChart = null;
-    }
+  // 繪製圓餅圖 (債務比例)
+  function renderPieChart() {
+    if (pieChart) {
+      pieChart.destroy();
+      pieChart = null;
+    }
 
-    const totalDebt = state.debtors.reduce((sum, d) => sum + d.debt, 0);
-    if (totalDebt <= 0) {
-      // 無債務就不畫圖
-      document.getElementById('chartsArea').style.display = 'none';
-      return;
-    }
-    document.getElementById('chartsArea').style.display = 'flex';
+    const totalDebt = state.debtors.reduce((sum, d) => sum + d.debt, 0);
+    if (totalDebt <= 0) {
+      // 無債務就不畫圖
+      chartsArea.style.display = 'none'; // Hide the charts area
+      return;
+    }
+    chartsArea.style.display = 'flex'; // Show the charts area
 
-    const labels = state.debtors.map(d => d.name);
-    const data = state.debtors.map(d => d.debt);
+    const labels = state.debtors.map(d => d.name);
+    const data = state.debtors.map(d => d.debt);
 
-    const backgroundColors = [
-      '#ff6f6f', '#ff9f6f', '#ffc56f', '#b3d955',
-      '#6fcb9f', '#6fcbe6', '#6f8ffc', '#b16ffb',
-      '#eb6ffb', '#ff6fb8', '#ff6f8f'
-    ];
+    const backgroundColors = [
+      '#ff6f6f', '#ff9f6f', '#ffc56f', '#b3d955',
+      '#6fcb9f', '#6fcbe6', '#6f8ffc', '#b16ffb',
+      '#eb6ffb', '#ff6fb8', '#ff6f8f'
+    ];
 
-    const ctx = document.getElementById('pieChart').getContext('2d');
+    const ctx = document.getElementById('pieChart').getContext('2d');
 
-    pieChart = new Chart(ctx, {
-      type: 'pie',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: '債務比例',
-          data: data,
-          backgroundColor: backgroundColors.slice(0, labels.length),
-          borderWidth: 1,
-          borderColor: '#fff'
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            position: 'right',
-            labels: {
-              font: { size: 14, weight: '600' },
-              color: '#a13131',
-              padding: 12
-            }
-          },
-          tooltip: {
-            callbacks: {
-              label: ctx => `${ctx.label}: ${ctx.parsed.toLocaleString()} 元`
-            }
-          }
-        }
-      }
-    });
-  }
+    pieChart = new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: '債務比例',
+          data: data,
+          backgroundColor: backgroundColors.slice(0, labels.length),
+          borderWidth: 1,
+          borderColor: '#fff'
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: {
+              font: { size: 14, weight: '600' },
+              color: '#a13131',
+              padding: 12
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: ctx => `${ctx.label}: ${ctx.parsed.toLocaleString()} 元`
+            }
+          }
+        }
+      }
+    });
+  }
 
-  // 產生 CSV 字串
-  function generateCSV() {
-    if (!state.monthRecords || state.monthRecords.length === 0) return '';
+  // 產生 CSV 字串
+  function generateCSV() {
+    if (!state.monthRecords || state.monthRecords.length === 0) return '';
 
-    const headers = ['年月', ...state.debtors.map(d => `債務-${d.name}`), ...state.courses.map(c => `課程-${c.name}`), '剩餘預算'];
-    const rows = state.monthRecords.map(r => {
-      const yearMonth = `${r.year}年${r.month}月`;
-      const debtValues = state.debtors.map(d => {
-        const val = r.debtsRemaining[d.name];
-        return val ? val.toFixed(2) : '0.00';
-      });
-      const courseValues = state.courses.map(c => {
-        const course = r.coursesRemaining.find(crs => crs.name === c.name);
-        return course ? course.remainingFee.toFixed(2) : '0.00';
-      });
-      return [yearMonth, ...debtValues, ...courseValues, r.budgetLeft.toFixed(2)];
-    });
+    const headers = ['年月', ...state.debtors.map(d => `債務-${d.name}`), ...state.courses.map(c => `課程-${c.name}`), '剩餘預算'];
+    const rows = state.monthRecords.map(r => {
+      const yearMonth = `${r.year}年${r.month}月`;
+      const debtValues = state.debtors.map(d => {
+        const val = r.debtsRemaining[d.name];
+        return val ? val.toFixed(2) : '0.00';
+      });
+      const courseValues = state.courses.map(c => {
+        const course = r.coursesRemaining.find(crs => crs.name === c.name);
+        return course ? course.remainingFee.toFixed(2) : '0.00';
+      });
+      return [yearMonth, ...debtValues, ...courseValues, r.budgetLeft.toFixed(2)];
+    });
 
-    // CSV合併，逗號分隔，文字欄位包雙引號
-    let csvContent = headers.map(h => `"${h}"`).join(',') + '\n';
-    rows.forEach(row => {
-      csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
-    });
+    // CSV合併，逗號分隔，文字欄位包雙引號
+    let csvContent = headers.map(h => `"${h}"`).join(',') + '\n';
+    rows.forEach(row => {
+      csvContent += row.map(cell => `"${cell}"`).join(',') + '\n';
+    });
 
-    return csvContent;
-  }
+    return csvContent;
+  }
 
-  // 下載 CSV
-  function downloadCSV(filename, csvContent) {
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
+  // 下載 CSV
+  function downloadCSV(filename, csvContent) {
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
 
-  // 按鈕事件：開始計算
-  btnCalculate.addEventListener('click', () => {
-    updateStateFromUI();
+  // Function to clear results and disable buttons
+  function clearAndDisableResults() {
+    resultArea.textContent = '請填寫資料並按「開始計算」';
+    if (pieChart) {
+      pieChart.destroy();
+      pieChart = null;
+    }
+    chartsArea.style.display = 'none'; // Hide the charts area
+    btnExportCSV.disabled = true;
+    btnClearResults.disabled = true;
+    btnCopyResults.disabled = true;
+    state.monthRecords = []; // Clear month records in state
+  }
 
-    const calcResult = calculateRepaymentPlan();
-    if (!calcResult) return;
+  // 按鈕事件：開始計算
+  btnCalculate.addEventListener('click', () => {
+    updateStateFromUI();
 
-    displayResults(calcResult);
-    renderPieChart();
-    btnExportCSV.disabled = false;
-  });
+    const calcResult = calculateRepaymentPlan();
+    if (!calcResult) {
+      clearAndDisableResults(); // Clear if calculation fails
+      return;
+    }
 
-  // 按鈕事件：匯出 CSV
-  btnExportCSV.addEventListener('click', () => {
-    const csv = generateCSV();
-    if (!csv) {
-      alert('沒有可匯出的資料');
-      return;
-    }
-    const filename = `還款試算表_${new Date().toISOString().slice(0,10)}.csv`;
-    downloadCSV(filename, csv);
-  });
+    displayResults(calcResult);
+    renderPieChart();
+    btnExportCSV.disabled = false;
+    btnClearResults.disabled = false; // Enable clear button after calculation
+    btnCopyResults.disabled = false; // Enable copy button after calculation
+  });
 
-  // 頁面載入時，預先加入1筆債務人與課程，方便操作
-  window.onload = () => {
-    btnAddDebtor.click();
-    btnAddCourse.click();
-  };
+  // 按鈕事件：匯出 CSV
+  btnExportCSV.addEventListener('click', () => {
+    const csv = generateCSV();
+    if (!csv) {
+      alert('沒有可匯出的資料');
+      return;
+    }
+    const filename = `還款試算表_${new Date().toISOString().slice(0,10)}.csv`;
+    downloadCSV(filename, csv);
+  });
+
+  // Button event: Clear Results
+  btnClearResults.addEventListener('click', () => {
+    clearAndDisableResults();
+  });
+
+  // Button event: Copy Results
+  btnCopyResults.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(resultArea.textContent);
+      alert('計算結果已複製到剪貼簿！');
+    } catch (err) {
+      console.error('無法複製文字：', err);
+      alert('複製失敗，請手動複製。');
+    }
+  });
+
+  // 頁面載入時，預先加入1筆債務人與課程，方便操作
+  window.onload = () => {
+    btnAddDebtor.click();
+    btnAddCourse.click();
+    chartsArea.style.display = 'none'; // Hide charts area on initial load
+  };
 </script>
 
 </body>
