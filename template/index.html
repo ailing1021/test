@@ -254,9 +254,10 @@
     <section id="actions">
         <button id="btnCalculate" type="button">開始計算</button>
         <button id="btnExportCSV" type="button" disabled>匯出 CSV</button>
-        <button id="btnClearResults" type="button" disabled>清除結果</button>
+        <button id="btnClearResults" type="button" disabled>清除全部</button>
         <button id="btnCopyResults" type="button" disabled>複製結果</button>
-        <button id="btnExportPDF" type="button" disabled>匯出 PDF</button> </section>
+        <button id="btnExportPDF" type="button" disabled>匯出 PDF</button>
+    </section>
 
     <section id="resultSection">
         <h2>計算結果</h2>
@@ -320,7 +321,7 @@
     const btnExportCSV = document.getElementById('btnExportCSV');
     const btnClearResults = document.getElementById('btnClearResults');
     const btnCopyResults = document.getElementById('btnCopyResults');
-    const btnExportPDF = document.getElementById('btnExportPDF'); // NEW: PDF button element
+    const btnExportPDF = document.getElementById('btnExportPDF');
     const resultArea = document.getElementById('resultArea');
     const chartsArea = document.getElementById('chartsArea');
 
@@ -350,7 +351,7 @@
         btnRemove.onclick = () => {
             div.remove();
             updateStateFromUI();
-            clearAndDisableResults();
+            clearResultDisplayOnly(); // 任何輸入改變或移除都清空結果顯示，但不清空輸入
         };
 
         // 輸入改變即更新狀態
@@ -394,7 +395,7 @@
         btnRemove.onclick = () => {
             div.remove();
             updateStateFromUI();
-            clearAndDisableResults();
+            clearResultDisplayOnly(); // 任何輸入改變或移除都清空結果顯示，但不清空輸入
         };
 
         // 輸入改變即更新狀態
@@ -414,14 +415,14 @@
     btnAddDebtor.addEventListener('click', () => {
         const item = createDebtorItem();
         debtorsList.appendChild(item);
-        clearAndDisableResults();
+        clearResultDisplayOnly(); // 新增項目後清空結果顯示
     });
 
     // 新增課程
     btnAddCourse.addEventListener('click', () => {
         const item = createCourseItem();
         coursesList.appendChild(item);
-        clearAndDisableResults();
+        clearResultDisplayOnly(); // 新增項目後清空結果顯示
     });
 
     // 從UI同步狀態物件
@@ -453,9 +454,9 @@
 
         // Disable result buttons until calculation is performed
         btnExportCSV.disabled = true;
-        btnClearResults.disabled = true;
+        btnClearResults.disabled = false; // "清除全部"按鈕應該總是可用的
         btnCopyResults.disabled = true;
-        btnExportPDF.disabled = true; // NEW: Disable PDF button
+        btnExportPDF.disabled = true;
     }
 
     // 顯示錯誤訊息
@@ -467,23 +468,23 @@
     function calculateRepaymentPlan() {
         if (state.salary <= 0) {
             showError('請輸入有效的薪資');
-            clearAndDisableResults();
-            return;
+            clearResultDisplayOnly();
+            return null; // Return null to indicate calculation failed
         }
         if (state.livingExpense < 0) {
             showError('生活費不可為負數');
-            clearAndDisableResults();
-            return;
+            clearResultDisplayOnly();
+            return null;
         }
         if (state.livingExpense >= state.salary) {
-            showError('生活費不可大於或等於薪資');
-            clearAndDisableResults();
-            return;
+            showError('生活費不可大於或等於薪資，請調整');
+            clearResultDisplayOnly();
+            return null;
         }
         if (state.debtors.length === 0 && state.courses.length === 0) {
             showError('請至少新增一位債務人或一個課程');
-            clearAndDisableResults();
-            return;
+            clearResultDisplayOnly();
+            return null;
         }
 
         const disposableIncome = state.salary - state.livingExpense;
@@ -501,7 +502,7 @@
 
         const monthRecords = [];
         let monthCount = 0;
-        const maxMonths = 2000;
+        const maxMonths = 2000; // 設定最大計算月份，防止無限循環
 
         const repayCompletionDates = {};
         const courseCompletionDates = {};
@@ -512,9 +513,9 @@
             const allCoursesCleared = coursesRemaining.every(c => c.remainingFee <= 0.001);
             if (allDebtsCleared && allCoursesCleared) break;
             if (monthCount > maxMonths) {
-                showError('計算超過最大月份，請檢查輸入是否正確');
-                clearAndDisableResults();
-                break;
+                showError('計算超過最大月份，可能存在無法還清的債務或課程，請檢查輸入是否正確。');
+                clearResultDisplayOnly();
+                return null;
             }
 
             const currentMonthIndex = (state.startMonth - 1 + monthCount) % 12 + 1;
@@ -526,10 +527,12 @@
             // 優先還債務人，依序平均分配
             const activeDebtors = Object.entries(debtsRemaining).filter(([_, debt]) => debt > 0.001);
             if (activeDebtors.length > 0) {
-                // 平均分配預算給每個活債務人
-                const budgetPerDebtor = budget / (activeDebtors.length + coursesRemaining.filter(c => c.remainingFee > 0.001).length);
+                // 將預算平均分配給所有活躍的債務人和課程
+                const totalActiveItems = activeDebtors.length + coursesRemaining.filter(c => c.remainingFee > 0.001).length;
+                const budgetPerItem = totalActiveItems > 0 ? budget / totalActiveItems : 0;
+
                 activeDebtors.forEach(([name, debt]) => {
-                    const pay = Math.min(debt, budgetPerDebtor);
+                    const pay = Math.min(debt, budgetPerItem); // 每個債務人獲得的預算上限
                     debtsRemaining[name] -= pay;
                     budget -= pay;
                     if (debtsRemaining[name] <= 0.001 && !(name in repayCompletionDates)) {
@@ -541,12 +544,14 @@
             // 剩下預算分給課程月付
             const activeCourses = coursesRemaining.filter(c => c.remainingFee > 0.001);
             if (activeCourses.length > 0 && budget > 0) {
-                // 平均分配預算給活躍課程
-                const budgetPerCourse = budget / activeCourses.length;
+                const totalActiveItems = activeCourses.length + activeDebtors.filter(([_, debt]) => debt > 0.001).length; // 重新計算活躍項目，因為債務可能已還清部分
+                const budgetPerItem = totalActiveItems > 0 ? budget / totalActiveItems : 0;
+
                 activeCourses.forEach(course => {
-                    const pay = Math.min(course.remainingFee, budgetPerCourse, course.monthlyPayment);
+                    // 支付金額為剩餘費用、每月應付金額、和分配到的預算中的最小值
+                    const pay = Math.min(course.remainingFee, course.monthlyPayment, budgetPerItem);
                     course.remainingFee -= pay;
-                    budget -= pay;
+                    budget -= pay; // 從總預算中扣除
                     if (course.remainingFee <= 0.001 && !(course.name in courseCompletionDates)) {
                         courseCompletionDates[course.name] = { year: currentYear, month: currentMonthIndex };
                     }
@@ -624,6 +629,7 @@
 
         resultArea.textContent = text;
     }
+
     // 繪製圓餅圖 (債務比例)
     function renderPieChart() {
         if (pieChart) {
@@ -722,37 +728,74 @@
         document.body.removeChild(link);
     }
 
-    // Function to clear results and disable buttons
-    function clearAndDisableResults() {
+    // 只清除計算結果顯示區和圖表，不清除輸入
+    function clearResultDisplayOnly() {
         resultArea.textContent = '請填寫資料並按「開始計算」';
         if (pieChart) {
             pieChart.destroy();
             pieChart = null;
         }
         chartsArea.style.display = 'none';
+        state.monthRecords = []; // 清空記錄
         btnExportCSV.disabled = true;
-        btnClearResults.disabled = true;
         btnCopyResults.disabled = true;
-        btnExportPDF.disabled = true; // NEW: Disable PDF button
-        state.monthRecords = [];
+        btnExportPDF.disabled = true;
+        btnClearResults.disabled = false; // "清除全部"按鈕維持可用
     }
+
+    // 清除所有輸入和結果
+    function clearAllInputsAndResults() {
+        // 清空輸入欄位
+        inputSalary.value = '';
+        inputExpense.value = '';
+        selectStartMonth.value = '1'; // 重置為 1 月
+
+        // 清空動態列表
+        debtorsList.innerHTML = '';
+        coursesList.innerHTML = '';
+
+        // 重置全局狀態
+        state.salary = 0;
+        state.livingExpense = 0;
+        state.startMonth = 1;
+        state.debtors = [];
+        state.courses = [];
+        state.monthRecords = [];
+
+        // 清空結果顯示區和圖表
+        resultArea.textContent = '請填寫資料並按「開始計算」';
+        if (pieChart) {
+            pieChart.destroy();
+            pieChart = null;
+        }
+        chartsArea.style.display = 'none';
+
+        // 禁用結果相關按鈕
+        btnExportCSV.disabled = true;
+        btnClearResults.disabled = false; // "清除全部"按鈕維持可用
+        btnCopyResults.disabled = true;
+        btnExportPDF.disabled = true;
+    }
+
 
     // 按鈕事件：開始計算
     btnCalculate.addEventListener('click', () => {
-        updateStateFromUI();
+        updateStateFromUI(); // 從 UI 取得最新資料來更新 state
 
         const calcResult = calculateRepaymentPlan();
         if (!calcResult) {
-            clearAndDisableResults();
+            // 如果計算失敗 (例如輸入錯誤)，calculateRepaymentPlan 會返回 null 並已顯示錯誤訊息
+            // 此時我們只需要確保結果顯示區被清空
+            clearResultDisplayOnly();
             return;
         }
 
         displayResults(calcResult);
         renderPieChart();
         btnExportCSV.disabled = false;
-        btnClearResults.disabled = false;
+        // btnClearResults.disabled = false; // 該按鈕本身就應該是可用的
         btnCopyResults.disabled = false;
-        btnExportPDF.disabled = false; // NEW: Enable PDF button
+        btnExportPDF.disabled = false;
     });
 
     // 按鈕事件：匯出 CSV
@@ -766,23 +809,36 @@
         downloadCSV(filename, csv);
     });
 
-    // Button event: Clear Results
+    // 按鈕事件：清除全部 (原先的 btnClearResults)
     btnClearResults.addEventListener('click', () => {
-        clearAndDisableResults();
+        clearAllInputsAndResults(); // 呼叫新的清除所有功能
+        // 清除後預設新增一個債務人和一個課程輸入框，方便再次操作
+        btnAddDebtor.click();
+        btnAddCourse.click();
     });
 
-    // Button event: Copy Results
+    // 按鈕事件：複製結果 - 增加錯誤處理和備用方案
     btnCopyResults.addEventListener('click', async () => {
         try {
-            await navigator.clipboard.writeText(resultArea.textContent);
-            alert('計算結果已複製到剪貼簿！');
+            const textToCopy = resultArea.textContent;
+            if (!textToCopy || textToCopy === '請填寫資料並按「開始計算」') {
+                alert('沒有內容可以複製！');
+                return;
+            }
+            await navigator.clipboard.writeText(textToCopy);
+            alert('計算結果已成功複製到剪貼簿！');
         } catch (err) {
-            console.error('無法複製文字：', err);
-            alert('複製失敗，請手動複製。');
+            console.error('複製到剪貼簿失敗：', err);
+            // 提供手動複製的指示
+            alert(
+                '複製失敗，可能是瀏覽器安全限制或其他問題。\n' +
+                '請您手動選取「計算結果」區塊的所有文字 (Ctrl+A / Cmd+A)，\n' +
+                '然後按 Ctrl+C / Cmd+C 進行複製。'
+            );
         }
     });
 
-    // NEW: Button event: Export PDF
+    // 按鈕事件：匯出 PDF
     btnExportPDF.addEventListener('click', async () => {
         try {
             // 暫時隱藏 footer，以免被截圖到
@@ -836,13 +892,19 @@
         }
     });
 
-
-    // 頁面載入時，預先加入1筆債務人與課程，方便操作
+    // 頁面載入時，初始化應用程式
     window.onload = () => {
-        btnAddDebtor.click();
-        btnAddCourse.click();
-        chartsArea.style.display = 'none';
+        clearAllInputsAndResults(); // 確保初始狀態是完全清除的
+        btnAddDebtor.click(); // 預設新增一個債務人輸入框
+        btnAddCourse.click(); // 預設新增一個課程輸入框
+        chartsArea.style.display = 'none'; // 隱藏圖表區直到計算
     };
+
+    // 為所有會影響計算結果的輸入欄位添加事件監聽器，以便在值改變時清空結果顯示
+    inputSalary.addEventListener('input', clearResultDisplayOnly);
+    inputExpense.addEventListener('input', clearResultDisplayOnly);
+    selectStartMonth.addEventListener('change', clearResultDisplayOnly);
+
 </script>
 
 </body>
