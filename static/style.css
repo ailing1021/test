@@ -1,0 +1,40 @@
+body {
+  font-family: "微軟正黑體", sans-serif;
+  background: #f0f8ff;
+  color: #333;
+  margin: 0;
+  padding: 0;
+}
+header, footer {
+  background: #005a9c;
+  color: #fff;
+  padding: 10px;
+  text-align: center;
+}
+nav a {
+  color: #fff;
+  text-decoration: none;
+  margin: 0 8px;
+}
+main {
+  padding: 20px;
+  max-width: 700px;
+  margin: auto;
+}
+h1, h2 {
+  color: #005a9c;
+}
+form input {
+  margin: 5px 0;
+  padding: 5px;
+}
+.btn {
+  background: #005a9c;
+  color: #fff;
+  padding: 8px 16px;
+  border: none;
+  text-decoration: none;
+}
+footer {
+  margin-top: 30px;
+}
