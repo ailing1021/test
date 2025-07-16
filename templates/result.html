@@ -1,0 +1,9 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>試算結果</h2>
+<p>貸款金額：{{ amount }}</p>
+<p>年利率：{{ rate }}%</p>
+<p>期數：{{ months }} 月</p>
+<p><strong>每月還款金額：約 {{ payment }} 元</strong></p>
+<a class="btn" href="/calculator">再試一次</a>
+{% endblock %}

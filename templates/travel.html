@@ -1,0 +1,60 @@
+{% extends "layout.html" %}
+{% block content %}
+<h2>旅遊計劃試算</h2>
+
+<div class="mb-4">
+  <label for="budget" class="form-label">預算上限：</label>
+  <input type="number" id="budget" class="form-control" placeholder="輸入預算上限">
+</div>
+
+<h4 class="mt-4">旅遊項目清單</h4>
+
+<div id="travel-list" class="mb-3"></div>
+
+<div class="mb-4 row">
+  <div class="col-12 mb-2">
+    <button class="btn btn-outline-secondary w-100" onclick="addTravel()">+ 新增旅遊項目</button>
+  </div>
+  <div class="col-12">
+    <button class="btn btn-success w-100" onclick="calcTravel()">計算總費用</button>
+  </div>
+</div>
+
+<h3 class="mt-4">結果</h3>
+<div id="travel-result"></div>
+
+<script>
+function addTravel(){
+  const html = `
+  <div class="input-group mt-2">
+    <div class="row w-100 gx-2">
+      <div class="col-7">
+        <input type="text" class="form-control" placeholder="旅遊項目">
+      </div>
+      <div class="col-3">
+        <input type="number" class="form-control" placeholder="費用" min="0">
+      </div>
+      <div class="col-2">
+        <button class="btn btn-danger w-100" onclick="this.closest('.input-group').remove()">刪除</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById("travel-list").insertAdjacentHTML("beforeend", html);
+}
+
+function calcTravel(){
+  const budget = Number(document.getElementById("budget").value) || 0;
+  const items = document.querySelectorAll("#travel-list input[type='number']");
+  let total = 0;
+  items.forEach(i => {
+    total += Number(i.value) || 0;
+  });
+
+  const remain = budget - total;
+  document.getElementById("travel-result").innerHTML = `
+    <p>總費用：<strong>${total.toLocaleString()}</strong> 元</p>
+    <p>預算剩餘：<strong style="color:${remain >= 0 ? 'green' : 'red'}">${remain.toLocaleString()}</strong> 元</p>
+  `;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>還款試算網</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>還款試算網</h1>
+    <nav>
+      <a href="/">首頁</a> |
+      <a href="/calculator">還款試算</a> |
+      <a href="/travel">旅遊計畫試算表</a> |
+      <a href="/about">關於我們</a> |
+      <a href="/contact">聯絡我們</a> |
+      <a href="/privacy">隱私權政策</a> |
+      <a href="/terms">服務條款</a>
+    </nav>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    <p>© 2025 還款試算網</p>
+  </footer>
+</body>
+</html>
